@@ -1,0 +1,47 @@
+name: Dev Container Build
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+    branches:
+      - 'staging'
+      - 'main'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v3
+
+      - name: Build and run dev container task
+        uses: devcontainers/ci@v0.3
+        with:
+          imageName: ghcr.io/aimoda/terraform-provider-corellium-devcontainer
+          cacheFrom: ghcr.io/aimoda/terraform-provider-corellium-devcontainer
+          push: filter
+          refFilterForPush: refs/heads/main
+          eventFilterForPush: push
+        #   # Change this to be your CI task/script
+        #   runCmd: yarn test
+
+# jobs:
+#   devcontainer-build:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#     - name: Checkout repository
+#       uses: actions/checkout@v3
+
+#     - name: Setup Node.js
+#       uses: actions/setup-node@v3
+#       with:
+#         node-version: 18
+#         cache: 'npm'
+
+#     - name: Install Dev Container CLI
+#       run: npm install -g @microsoft/dev-container-cli
+
+#     - name: Build Dev Container
+#       run: devcontainer build

@@ -1,0 +1,8 @@
+{
+    "recommendations": [
+        "github.copilot",
+        "github.copilot-labs",
+        "golang.go",
+        "hashicorp.terraform"
+    ]
+}
