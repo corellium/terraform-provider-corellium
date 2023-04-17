@@ -11,32 +11,31 @@ import (
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ datasource.DataSource              = &corelliumDataSource{}
-	_ datasource.DataSourceWithConfigure = &corelliumDataSource{}
+	_ datasource.DataSource              = &v1GetInstancesDataSource{}
+	_ datasource.DataSourceWithConfigure = &v1GetInstancesDataSource{}
 )
 
 // NewCorelliumDataSource is a helper function to simplify the provider implementation.
-func NewCorelliumDataSource() datasource.DataSource {
-	return &corelliumDataSource{}
+func NewCorelliumV1GetInstancesSource() datasource.DataSource {
+	return &v1GetInstancesDataSource{}
 }
 
 // corelliumDataSource is the data source implementation.
-type corelliumDataSource struct {
+type v1GetInstancesDataSource struct {
 	client *corellium.APIClient
 }
 
 // corelliumDataSourceModel maps the data source schema data.
-type corelliumDataSourceModel struct {
-	Status types.String `tfsdk:"status"`
+type v1GetInstanceModel struct {
 }
 
 // Metadata returns the data source type name.
-func (d *corelliumDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (d *v1GetInstancesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_v1ready"
 }
 
 // Schema defines the schema for the data source.
-func (d *corelliumDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *v1GetInstancesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"status": schema.StringAttribute{
@@ -47,8 +46,8 @@ func (d *corelliumDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (d *corelliumDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var state corelliumDataSourceModel
+func (d *v1GetInstancesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var state v1GetInstanceModel
 
 	status, err := d.client.StatusApi.V1Ready(ctx).Execute()
 	if err != nil {
@@ -59,7 +58,7 @@ func (d *corelliumDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 	// Map response body to model
-	statusState := corelliumDataSourceModel{
+	statusState := v1GetInstanceModel{
 		Status: types.StringValue(status.Status),
 	}
 	state.Status = statusState.Status
@@ -72,7 +71,7 @@ func (d *corelliumDataSource) Read(ctx context.Context, req datasource.ReadReque
 }
 
 // Configure adds the provider configured client to the data source.
-func (d *corelliumDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, _ *datasource.ConfigureResponse) {
+func (d *v1GetInstancesDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, _ *datasource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}

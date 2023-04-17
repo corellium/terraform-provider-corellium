@@ -141,7 +141,8 @@ func (p *corelliumProvider) Configure(ctx context.Context, req provider.Configur
 //	}
 func (p *corelliumProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewCorelliumDataSource,
+		NewCorelliumV1ReadySource,
+		NewCorelliumV1GetInstancesSource,
 	}
 }
 
