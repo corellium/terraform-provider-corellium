@@ -416,26 +416,6 @@ func (d *v1GetInstancesDataSource) Read(ctx context.Context, req datasource.Read
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	// status, err := d.client.StatusApi.V1Ready(ctx).Execute()
-	// if err != nil {
-	// 	resp.Diagnostics.AddError(
-	// 		"Unable to check Corellium status",
-	// 		err.Error(),
-	// 	)
-	// 	return
-	// }
-	// // Map response body to model
-	// statusState := v1GetInstanceModel{
-	// 	Status: types.StringValue(status.Status),
-	// }
-	// state.Status = statusState.Status
-	// // Set state
-	// diags := resp.State.Set(ctx, &state)
-	// resp.Diagnostics.Append(diags...)
-	// if resp.Diagnostics.HasError() {
-	// 	return
-	// }
 }
 
 // Configure adds the provider configured client to the data source.
