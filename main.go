@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"terraform-provider-corellium/corellium"
 
+	"terraform-provider-corellium/corellium"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
 

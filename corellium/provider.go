@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aimoda/go-corellium-api-client"
+	"terraform-provider-corellium/corellium/pkg/api"
 
+	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -86,6 +87,8 @@ func (p *corelliumProvider) Configure(ctx context.Context, req provider.Configur
 		token = config.Token.ValueString()
 	}
 
+	api.SetAccessToken(token)
+
 	// If any of the expected configurations are missing, return
 	// errors with provider-specific guidance.
 
@@ -103,10 +106,11 @@ func (p *corelliumProvider) Configure(ctx context.Context, req provider.Configur
 		return
 	}
 
-	// Create a new HashiCups client using the configuration values
 	configuration := corellium.NewConfiguration()
+	configuration.Host = "moda.enterprise.corellium.com"
+
 	client := corellium.NewAPIClient(configuration)
-	r, err := client.StatusApi.V1Ready(context.Background()).Execute()
+	r, err := client.StatusApi.V1Ready(ctx).Execute()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error when calling `StatusApi.V1Ready``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
@@ -117,19 +121,7 @@ func (p *corelliumProvider) Configure(ctx context.Context, req provider.Configur
 				"Corellium Client Error: "+err.Error(),
 		)
 	}
-	// client := corellium.NewAPIClient(corellium.NewConfiguration())
-	// if err != nil {
-	// 	resp.Diagnostics.AddError(
-	// 		"Unable to Create HashiCups API Client",
-	// 		"An unexpected error occurred when creating the HashiCups API client. "+
-	// 			"If the error is not clear, please contact the provider developers.\n\n"+
-	// 			"HashiCups Client Error: "+err.Error(),
-	// 	)
-	// 	return
-	// }
 
-	// Make the HashiCups client available during DataSource and Resource
-	// type Configure methods.
 	resp.DataSourceData = client
 	resp.ResourceData = client
 }
@@ -141,12 +133,14 @@ func (p *corelliumProvider) Configure(ctx context.Context, req provider.Configur
 //	}
 func (p *corelliumProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewCorelliumV1ReadySource,
+		NewCorelliumReadyDataSource,
 		NewCorelliumV1GetInstancesSource,
 	}
 }
 
 // Resources defines the resources implemented in the provider.
 func (p *corelliumProvider) Resources(_ context.Context) []func() resource.Resource {
-	return nil
+	return []func() resource.Resource{
+		NewCorelliumImageResource,
+	}
 }
