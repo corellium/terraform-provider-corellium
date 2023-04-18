@@ -12,11 +12,17 @@ provider "corellium" {
   token = ""
 }
 
-resource "corellium_v1image" "example" {
-  name = "example"
-  type = "backup"
-  filename = "example.img"
-  encapsulated = false 
-  project = "fa79475c-2703-4ccc-bc17-1876c2593ec6"
+resource "corellium_v1project" "example" {
+	name = "example"
+	settings = {
+		version = 1
+		internet_access = false
+		dhcp = false
+	}
+	quotas = {
+		cores = 1
+		instances = 2.5
+		ram = 6144
+	}
 }
 
