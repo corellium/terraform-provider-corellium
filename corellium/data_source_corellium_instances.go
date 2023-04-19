@@ -33,7 +33,7 @@ type v1GetInstancesDataSourceModel struct {
 
 // coffeesModel maps coffees schema data.
 type v1GetInstanceModel struct {
-	ID           types.Int64    `tfsdk:"id"`
+	ID           types.String   `tfsdk:"id"`
 	Name         types.String   `tfsdk:"name"`
 	Key          types.String   `tfsdk:"key"`
 	Flavor       types.String   `tfsdk:"flavor"`
@@ -308,7 +308,7 @@ func (d *v1GetInstancesDataSource) Schema(_ context.Context, _ datasource.Schema
 
 // Read refreshes the Terraform state with the latest data.
 func (d *v1GetInstancesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var state v1GetInstanceModel
+	var state v1GetInstancesDataSourceModel
 
 	instances, _, err := d.client.InstancesApi.V1GetInstances(ctx).Execute()
 	if err != nil {
@@ -320,9 +320,9 @@ func (d *v1GetInstancesDataSource) Read(ctx context.Context, req datasource.Read
 	}
 
 	// Map response body to model
-	for index, instance := range instances {
+	for _, instance := range instances {
 		instanceState := v1GetInstanceModel{
-			ID:           types.Int64(instance.Id),
+			ID:           types.StringValue(instance.GetId()),
 			Name:         types.StringValue(instance.GetName()),
 			Key:          types.StringValue(instance.GetKey()),
 			Flavor:       types.StringValue(instance.GetFlavor()),
@@ -355,29 +355,6 @@ func (d *v1GetInstancesDataSource) Read(ctx context.Context, req datasource.Read
 				PAC:             types.BoolValue(instance.BootOptions.GetPac()),
 				APRR:            types.BoolValue(instance.BootOptions.GetAprr()),
 			}
-			//for _, tag := range instance.BootOptions.AdditionalTags {
-			//	instanceState.BootOptions.AdditionalTags = append(instanceState.BootOptions.AdditionalTags, types.StringValue(tag))
-			//}
-		}
-
-		if instance.Services != nil {
-			//instanceState.Services = Services{}
-
-			if instance.Services.Vpn != nil {
-				//instanceState.Services.VPN = VPN{}
-
-				//for i, proxy := range instance.Services.Vpn.GetProxy() {
-				//	instance.Services.Vpn.Listeners[i]
-				//}
-
-				/*for _, proxy := range instance.Services.VPN.Proxy {
-					instanceState.Services.VPN.Proxy = append(instanceState.Services.VPN.Proxy, Proxy{})
-				}
-				for _, listener := range instance.Services.VPN.Listeners {
-					instanceState.Services.VPN.Listeners = append(instanceState.Services.VPN.Listeners, Listener{})
-				}*/
-			}
-
 		}
 
 		if instance.Agent.IsSet() {
@@ -404,7 +381,8 @@ func (d *v1GetInstancesDataSource) Read(ctx context.Context, req datasource.Read
 			}
 		}
 
-		instances[index] = instance
+		// instances[index] = instance
+		state.Instances = append(state.Instances, instanceState)
 	}
 
 	// Set state
