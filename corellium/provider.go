@@ -137,5 +137,6 @@ func (p *corelliumProvider) DataSources(_ context.Context) []func() datasource.D
 func (p *corelliumProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewCorelliumV1ImageResource,
+		NewCorelliumV1ProjectResource,
 	}
 }
