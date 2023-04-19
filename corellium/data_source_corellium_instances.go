@@ -3,6 +3,8 @@ package corellium
 import (
 	"context"
 
+	"terraform-provider-corellium/corellium/pkg/api"
+
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -39,38 +41,38 @@ type v1GetInstanceModel struct {
 	Flavor       types.String   `tfsdk:"flavor"`
 	Project      types.String   `tfsdk:"project"`
 	State        types.String   `tfsdk:"state"`
-	StateChanged types.String   `tfsdk:"stateChanged"`
-	StartedAt    types.String   `tfsdk:"startedAt"`
-	UserTask     types.String   `tfsdk:"userTask"`
-	TaskState    types.String   `tfsdk:"taskState"`
+	StateChanged types.String   `tfsdk:"state_changed"`
+	StartedAt    types.String   `tfsdk:"started_at"`
+	UserTask     types.String   `tfsdk:"user_task"`
+	TaskState    types.String   `tfsdk:"task_state"`
 	Error        types.String   `tfsdk:"error"`
-	BootOptions  BootOptions    `tfsdk:"bootOptions"`
-	ServiceIP    types.String   `tfsdk:"serviceIp"`
-	WifiIP       types.String   `tfsdk:"wifiIp"`
-	SecondaryIP  types.String   `tfsdk:"secondaryIp"`
-	Services     Services       `tfsdk:"services"`
+	BootOptions  []BootOptions  `tfsdk:"boot_options"`
+	ServiceIP    types.String   `tfsdk:"service_ip"`
+	WifiIP       types.String   `tfsdk:"wifi_ip"`
+	SecondaryIP  types.String   `tfsdk:"secondary_ip"`
+	Services     []Services     `tfsdk:"services"`
 	Panicked     types.Bool     `tfsdk:"panicked"`
 	Created      types.String   `tfsdk:"created"`
 	Model        types.String   `tfsdk:"model"`
 	FWPackage    types.String   `tfsdk:"fwpackage"`
 	OS           types.String   `tfsdk:"os"`
-	Agent        Agent          `tfsdk:"agent"`
-	Netmon       Netmon         `tfsdk:"netmon"`
-	ExposePort   types.String   `tfsdk:"exposePort"`
+	Agent        []Agent        `tfsdk:"agent"`
+	Netmon       []Netmon       `tfsdk:"netmon"`
+	ExposePort   types.String   `tfsdk:"expose_port"`
 	Fault        types.Bool     `tfsdk:"fault"`
 	Patches      []types.String `tfsdk:"patches"`
-	CreatedBy    CreatedBy      `tfsdk:"createdBy"`
+	CreatedBy    []CreatedBy    `tfsdk:"created_by"`
 }
 
 type BootOptions struct {
-	BootArgs        types.String   `tfsdk:"bootArgs"`
-	RestoreBootArgs types.String   `tfsdk:"restoreBootArgs"`
+	BootArgs        types.String   `tfsdk:"boot_args"`
+	RestoreBootArgs types.String   `tfsdk:"restore_boot_args"`
 	UDID            types.String   `tfsdk:"udid"`
 	ECID            types.String   `tfsdk:"ecid"`
-	RandomSeed      types.String   `tfsdk:"randomSeed"`
+	RandomSeed      types.String   `tfsdk:"random_seed"`
 	PAC             types.Bool     `tfsdk:"pac"`
 	APRR            types.Bool     `tfsdk:"aprr"`
-	AdditionalTags  []types.String `tfsdk:"additionalTags"`
+	AdditionalTags  []types.String `tfsdk:"additional_tags"`
 }
 
 type Services struct {
@@ -78,18 +80,9 @@ type Services struct {
 }
 
 type VPN struct {
-	Proxy     []Proxy    `tfsdk:"proxy"`
-	Listeners []Listener `tfsdk:"listeners"`
+	Proxy     types.String `tfsdk:"proxy"`
+	Listeners types.String `tfsdk:"listeners"`
 }
-
-type Proxy struct {
-	// Proxy configuration attributes
-}
-
-type Listener struct {
-	// Listener configuration attributes
-}
-
 type Agent struct {
 	Hash types.String `tfsdk:"hash"`
 	Info types.String `tfsdk:"info"`
@@ -110,7 +103,7 @@ type CreatedBy struct {
 
 // Metadata returns the data source type name.
 func (d *v1GetInstancesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_v1ready"
+	resp.TypeName = req.ProviderTypeName + "_v1getinstances"
 }
 
 // Schema defines the schema for the data source.
@@ -142,28 +135,28 @@ func (d *v1GetInstancesDataSource) Schema(_ context.Context, _ datasource.Schema
 						"state": schema.StringAttribute{
 							Computed: true,
 						},
-						"stateChanged": schema.StringAttribute{
+						"state_changed": schema.StringAttribute{
 							Computed: true,
 						},
-						"startedAt": schema.StringAttribute{
+						"started_at": schema.StringAttribute{
 							Computed: true,
 						},
-						"userTask": schema.StringAttribute{
+						"user_task": schema.StringAttribute{
 							Computed: true,
 						},
-						"taskState": schema.StringAttribute{
+						"task_state": schema.StringAttribute{
 							Computed: true,
 						},
 						"error": schema.StringAttribute{
 							Computed: true,
 						},
-						"serviceIp": schema.StringAttribute{
+						"service_ip": schema.StringAttribute{
 							Computed: true,
 						},
-						"wifiIp": schema.StringAttribute{
+						"wifi_ip": schema.StringAttribute{
 							Computed: true,
 						},
-						"secondaryIp": schema.StringAttribute{
+						"secondary_ip": schema.StringAttribute{
 							Computed: true,
 						},
 						"services": schema.ListNestedAttribute{
@@ -217,21 +210,24 @@ func (d *v1GetInstancesDataSource) Schema(_ context.Context, _ datasource.Schema
 								},
 							},
 						},
-						"exposePort": schema.StringAttribute{
+						"expose_port": schema.StringAttribute{
 							Computed: true,
 						},
 						"fault": schema.BoolAttribute{
 							Computed: true,
 						},
-						"patches": schema.ListNestedAttribute{
+						"patches": schema.StringAttribute{
 							Computed: true,
-							NestedObject: schema.NestedAttributeObject{
-								Attributes: map[string]schema.Attribute{
-									// TODO: Patches string here
-								},
-							},
 						},
-						"createdBy": schema.ListNestedAttribute{
+						// "patches": schema.ListNestedAttribute{
+						// 	Computed: true,
+						// 	NestedObject: schema.NestedAttributeObject{
+						// 		Attributes: map[string]schema.Attribute{
+						// 			// TODO: Patches string here
+						// 		},
+						// 	},
+						// },
+						"created_by": schema.ListNestedAttribute{
 							Computed: true,
 							NestedObject: schema.NestedAttributeObject{
 								Attributes: map[string]schema.Attribute{
@@ -250,14 +246,14 @@ func (d *v1GetInstancesDataSource) Schema(_ context.Context, _ datasource.Schema
 								},
 							},
 						},
-						"bootOptions": schema.ListNestedAttribute{
+						"boot_options": schema.ListNestedAttribute{
 							Computed: true,
 							NestedObject: schema.NestedAttributeObject{
 								Attributes: map[string]schema.Attribute{
-									"bootArgs": schema.StringAttribute{
+									"boot_args": schema.StringAttribute{
 										Computed: true,
 									},
-									"restoreBootArgs": schema.StringAttribute{
+									"restore_boot_args": schema.StringAttribute{
 										Computed: true,
 									},
 									"udid": schema.StringAttribute{
@@ -266,7 +262,7 @@ func (d *v1GetInstancesDataSource) Schema(_ context.Context, _ datasource.Schema
 									"ecid": schema.StringAttribute{
 										Computed: true,
 									},
-									"randomSeed": schema.StringAttribute{
+									"random_seed": schema.StringAttribute{
 										Computed: true,
 									},
 									"pac": schema.BoolAttribute{
@@ -275,14 +271,17 @@ func (d *v1GetInstancesDataSource) Schema(_ context.Context, _ datasource.Schema
 									"aprr": schema.BoolAttribute{
 										Computed: true,
 									},
-									"additionalTags": schema.ListNestedAttribute{
+									"additional_tags": schema.StringAttribute{
 										Computed: true,
-										NestedObject: schema.NestedAttributeObject{
-											Attributes: map[string]schema.Attribute{
-												// TODO: additionalTags string
-											},
-										},
 									},
+									// "additional_tags": schema.ListNestedAttribute{
+									// 	Computed: true,
+									// 	NestedObject: schema.NestedAttributeObject{
+									// 		Attributes: map[string]schema.Attribute{
+									// 			// TODO: additionalTags string
+									// 		},
+									// 	},
+									// },
 								},
 							},
 						},
@@ -310,7 +309,8 @@ func (d *v1GetInstancesDataSource) Schema(_ context.Context, _ datasource.Schema
 func (d *v1GetInstancesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var state v1GetInstancesDataSourceModel
 
-	instances, _, err := d.client.InstancesApi.V1GetInstances(ctx).Execute()
+	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
+	instances, _, err := d.client.InstancesApi.V1GetInstances(auth).Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Read Instances",
@@ -346,38 +346,46 @@ func (d *v1GetInstancesDataSource) Read(ctx context.Context, req datasource.Read
 		}
 
 		if instance.BootOptions != nil {
-			instanceState.BootOptions = BootOptions{
-				BootArgs:        types.StringValue(instance.BootOptions.GetBootArgs()),
-				RestoreBootArgs: types.StringValue(instance.BootOptions.GetRestoreBootArgs()),
-				UDID:            types.StringValue(instance.BootOptions.GetUdid()),
-				ECID:            types.StringValue(instance.BootOptions.GetEcid()),
-				RandomSeed:      types.StringValue(instance.BootOptions.GetRandomSeed()),
-				PAC:             types.BoolValue(instance.BootOptions.GetPac()),
-				APRR:            types.BoolValue(instance.BootOptions.GetAprr()),
+			instanceState.BootOptions = []BootOptions{
+				{
+					BootArgs:        types.StringValue(instance.BootOptions.GetBootArgs()),
+					RestoreBootArgs: types.StringValue(instance.BootOptions.GetRestoreBootArgs()),
+					UDID:            types.StringValue(instance.BootOptions.GetUdid()),
+					ECID:            types.StringValue(instance.BootOptions.GetEcid()),
+					RandomSeed:      types.StringValue(instance.BootOptions.GetRandomSeed()),
+					PAC:             types.BoolValue(instance.BootOptions.GetPac()),
+					APRR:            types.BoolValue(instance.BootOptions.GetAprr()),
+				},
 			}
 		}
 
 		if instance.Agent.IsSet() {
-			instanceState.Agent = Agent{
-				Hash: types.StringValue(instance.Agent.Get().GetHash()),
-				Info: types.StringValue(instance.Agent.Get().GetInfo()),
+			instanceState.Agent = []Agent{
+				{
+					Hash: types.StringValue(instance.Agent.Get().GetHash()),
+					Info: types.StringValue(instance.Agent.Get().GetInfo()),
+				},
 			}
 		}
 
 		if instance.Netmon.IsSet() {
-			instanceState.Netmon = Netmon{
-				Hash:    types.StringValue(instance.Netmon.Get().GetHash()),
-				Info:    types.StringValue(instance.Netmon.Get().GetInfo()),
-				Enabled: types.BoolValue(instance.Netmon.Get().HasEnabled()),
+			instanceState.Netmon = []Netmon{
+				{
+					Hash:    types.StringValue(instance.Netmon.Get().GetHash()),
+					Info:    types.StringValue(instance.Netmon.Get().GetInfo()),
+					Enabled: types.BoolValue(instance.Netmon.Get().HasEnabled()),
+				},
 			}
 		}
 
 		if instance.CreatedBy != nil {
-			instanceState.CreatedBy = CreatedBy{
-				ID:       types.StringValue(instance.CreatedBy.GetId()),
-				Username: types.StringValue(instance.CreatedBy.GetUsername()),
-				Label:    types.StringValue(instance.CreatedBy.GetLabel()),
-				Deleted:  types.BoolValue(instance.CreatedBy.GetDeleted()),
+			instanceState.CreatedBy = []CreatedBy{
+				{
+					ID:       types.StringValue(instance.CreatedBy.GetId()),
+					Username: types.StringValue(instance.CreatedBy.GetUsername()),
+					Label:    types.StringValue(instance.CreatedBy.GetLabel()),
+					Deleted:  types.BoolValue(instance.CreatedBy.GetDeleted()),
+				},
 			}
 		}
 
