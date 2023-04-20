@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -35,33 +36,33 @@ type v1GetInstancesDataSourceModel struct {
 
 // coffeesModel maps coffees schema data.
 type v1GetInstanceModel struct {
-	ID           types.String   `tfsdk:"id"`
-	Name         types.String   `tfsdk:"name"`
-	Key          types.String   `tfsdk:"key"`
-	Flavor       types.String   `tfsdk:"flavor"`
-	Project      types.String   `tfsdk:"project"`
-	State        types.String   `tfsdk:"state"`
-	StateChanged types.String   `tfsdk:"state_changed"`
-	StartedAt    types.String   `tfsdk:"started_at"`
-	UserTask     types.String   `tfsdk:"user_task"`
-	TaskState    types.String   `tfsdk:"task_state"`
-	Error        types.String   `tfsdk:"error"`
-	BootOptions  []BootOptions  `tfsdk:"boot_options"`
-	ServiceIP    types.String   `tfsdk:"service_ip"`
-	WifiIP       types.String   `tfsdk:"wifi_ip"`
-	SecondaryIP  types.String   `tfsdk:"secondary_ip"`
-	Services     []Services     `tfsdk:"services"`
-	Panicked     types.Bool     `tfsdk:"panicked"`
-	Created      types.String   `tfsdk:"created"`
-	Model        types.String   `tfsdk:"model"`
-	FWPackage    types.String   `tfsdk:"fwpackage"`
-	OS           types.String   `tfsdk:"os"`
-	Agent        []Agent        `tfsdk:"agent"`
-	Netmon       []Netmon       `tfsdk:"netmon"`
-	ExposePort   types.String   `tfsdk:"expose_port"`
-	Fault        types.Bool     `tfsdk:"fault"`
-	Patches      []types.String `tfsdk:"patches"`
-	CreatedBy    []CreatedBy    `tfsdk:"created_by"`
+	ID           types.String  `tfsdk:"id"`
+	Name         types.String  `tfsdk:"name"`
+	Key          types.String  `tfsdk:"key"`
+	Flavor       types.String  `tfsdk:"flavor"`
+	Project      types.String  `tfsdk:"project"`
+	State        types.String  `tfsdk:"state"`
+	StateChanged types.String  `tfsdk:"state_changed"`
+	StartedAt    types.String  `tfsdk:"started_at"`
+	UserTask     types.String  `tfsdk:"user_task"`
+	TaskState    types.String  `tfsdk:"task_state"`
+	Error        types.String  `tfsdk:"error"`
+	BootOptions  []BootOptions `tfsdk:"boot_options"`
+	ServiceIP    types.String  `tfsdk:"service_ip"`
+	WifiIP       types.String  `tfsdk:"wifi_ip"`
+	SecondaryIP  types.String  `tfsdk:"secondary_ip"`
+	// Services     []Services     `tfsdk:"services"`
+	Panicked   types.Bool     `tfsdk:"panicked"`
+	Created    types.String   `tfsdk:"created"`
+	Model      types.String   `tfsdk:"model"`
+	FWPackage  types.String   `tfsdk:"fwpackage"`
+	OS         types.String   `tfsdk:"os"`
+	Agent      []Agent        `tfsdk:"agent"`
+	Netmon     []Netmon       `tfsdk:"netmon"`
+	ExposePort types.String   `tfsdk:"expose_port"`
+	Fault      types.Bool     `tfsdk:"fault"`
+	Patches    []types.String `tfsdk:"patches"`
+	CreatedBy  []CreatedBy    `tfsdk:"created_by"`
 }
 
 type BootOptions struct {
@@ -75,14 +76,14 @@ type BootOptions struct {
 	AdditionalTags  []types.String `tfsdk:"additional_tags"`
 }
 
-type Services struct {
-	VPN VPN `tfsdk:"vpn"`
-}
+// type Services struct {
+// 	VPN VPN `tfsdk:"vpn"`
+// }
 
-type VPN struct {
-	Proxy     types.String `tfsdk:"proxy"`
-	Listeners types.String `tfsdk:"listeners"`
-}
+//	type VPN struct {
+//		Proxy     types.String `tfsdk:"proxy"`
+//		Listeners types.String `tfsdk:"listeners"`
+//	}
 type Agent struct {
 	Hash types.String `tfsdk:"hash"`
 	Info types.String `tfsdk:"info"`
@@ -111,190 +112,168 @@ func (d *v1GetInstancesDataSource) Schema(_ context.Context, _ datasource.Schema
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"instances": schema.ListNestedAttribute{
-				Computed: true,
+				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"name": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"key": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"flavor": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"type": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"project": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"state": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"state_changed": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"started_at": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"user_task": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"task_state": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"error": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"service_ip": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"wifi_ip": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"secondary_ip": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
-						"services": schema.ListNestedAttribute{
-							Computed: true,
-							NestedObject: schema.NestedAttributeObject{
-								Attributes: map[string]schema.Attribute{
-									"vpn": schema.ListNestedAttribute{
-										Computed: true,
-										NestedObject: schema.NestedAttributeObject{
-											Attributes: map[string]schema.Attribute{
-												"proxy": schema.StringAttribute{
-													Computed: true,
-												},
-												"listeners": schema.StringAttribute{
-													Computed: true,
-												},
-											},
-										},
-									},
-								},
-							},
-						},
+						// "services": schema.SingleNestedAttribute{
+						// 	Optional: true,
+						// 	Attributes: map[string]schema.Attribute{
+						// 		"vpn": schema.SingleNestedAttribute{
+						// 			Optional: true,
+						// 			Attributes: map[string]schema.Attribute{
+						// 				"proxy": schema.StringAttribute{
+						// 					Optional: true,
+						// 				},
+						// 				"listeners": schema.StringAttribute{
+						// 					Optional: true,
+						// 				},
+						// 			},
+						// 		},
+						// 	},
+						// },
 						"panicked": schema.BoolAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"created": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"model": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"fwpackage": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"os": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
-						"netmon": schema.ListNestedAttribute{
-							Computed: true,
-							NestedObject: schema.NestedAttributeObject{
-								Attributes: map[string]schema.Attribute{
-									"hash": schema.StringAttribute{
-										Computed: true,
-									},
-									"info": schema.StringAttribute{
-										Computed: true,
-									},
-									"enabled": schema.BoolAttribute{
-										Computed: true,
-									},
+						"netmon": schema.SingleNestedAttribute{
+							Description: "Netmon",
+							Optional:    true,
+							Attributes: map[string]schema.Attribute{
+								"hash": schema.StringAttribute{
+									Optional: true,
+								},
+								"info": schema.StringAttribute{
+									Optional: true,
+								},
+								"enabled": schema.BoolAttribute{
+									Optional: true,
 								},
 							},
 						},
 						"expose_port": schema.StringAttribute{
-							Computed: true,
+							Optional: true,
 						},
 						"fault": schema.BoolAttribute{
-							Computed: true,
+							Optional: true,
 						},
-						"patches": schema.StringAttribute{
-							Computed: true,
+						"patches": schema.ListAttribute{
+							ElementType: types.StringType,
+							Optional:    true,
 						},
-						// "patches": schema.ListNestedAttribute{
-						// 	Computed: true,
-						// 	NestedObject: schema.NestedAttributeObject{
-						// 		Attributes: map[string]schema.Attribute{
-						// 			// TODO: Patches string here
-						// 		},
-						// 	},
-						// },
-						"created_by": schema.ListNestedAttribute{
-							Computed: true,
-							NestedObject: schema.NestedAttributeObject{
-								Attributes: map[string]schema.Attribute{
-									"id": schema.StringAttribute{
-										Computed: true,
-									},
-									"username": schema.StringAttribute{
-										Computed: true,
-									},
-									"label": schema.StringAttribute{
-										Computed: true,
-									},
-									"deleted": schema.BoolAttribute{
-										Computed: true,
-									},
+						"created_by": schema.SingleNestedAttribute{
+							Description: "User who created the instance",
+							Optional:    true,
+							Attributes: map[string]schema.Attribute{
+								"id": schema.StringAttribute{
+									Optional: true,
+								},
+								"username": schema.StringAttribute{
+									Optional: true,
+								},
+								"label": schema.StringAttribute{
+									Optional: true,
+								},
+								"deleted": schema.BoolAttribute{
+									Optional: true,
 								},
 							},
 						},
-						"boot_options": schema.ListNestedAttribute{
-							Computed: true,
-							NestedObject: schema.NestedAttributeObject{
-								Attributes: map[string]schema.Attribute{
-									"boot_args": schema.StringAttribute{
-										Computed: true,
-									},
-									"restore_boot_args": schema.StringAttribute{
-										Computed: true,
-									},
-									"udid": schema.StringAttribute{
-										Computed: true,
-									},
-									"ecid": schema.StringAttribute{
-										Computed: true,
-									},
-									"random_seed": schema.StringAttribute{
-										Computed: true,
-									},
-									"pac": schema.BoolAttribute{
-										Computed: true,
-									},
-									"aprr": schema.BoolAttribute{
-										Computed: true,
-									},
-									"additional_tags": schema.StringAttribute{
-										Computed: true,
-									},
-									// "additional_tags": schema.ListNestedAttribute{
-									// 	Computed: true,
-									// 	NestedObject: schema.NestedAttributeObject{
-									// 		Attributes: map[string]schema.Attribute{
-									// 			// TODO: additionalTags string
-									// 		},
-									// 	},
-									// },
+						"boot_options": schema.SingleNestedAttribute{
+							Description: "Boot options for the instance",
+							Optional:    true,
+							Attributes: map[string]schema.Attribute{
+								"boot_args": schema.StringAttribute{
+									Optional: true,
+								},
+								"restore_boot_args": schema.StringAttribute{
+									Optional: true,
+								},
+								"udid": schema.StringAttribute{
+									Optional: true,
+								},
+								"ecid": schema.StringAttribute{
+									Optional: true,
+								},
+								"random_seed": schema.StringAttribute{
+									Optional: true,
+								},
+								"pac": schema.BoolAttribute{
+									Optional: true,
+								},
+								"aprr": schema.BoolAttribute{
+									Optional: true,
+								},
+								"additional_tags": schema.SetAttribute{
+									ElementType: types.StringType,
+									Optional:    true,
 								},
 							},
 						},
-						"agent": schema.ListNestedAttribute{
-							Computed: true,
-							NestedObject: schema.NestedAttributeObject{
-								Attributes: map[string]schema.Attribute{
-									"hash": schema.StringAttribute{
-										Computed: true,
-									},
-									"info": schema.StringAttribute{
-										Computed: true,
-									},
+						"agent": schema.SingleNestedAttribute{
+							Description: "Agent information for the instance",
+							Optional:    true,
+							Attributes: map[string]schema.Attribute{
+								"hash": schema.StringAttribute{
+									Optional: true,
+								},
+								"info": schema.StringAttribute{
+									Optional: true,
 								},
 							},
 						},
@@ -345,6 +324,24 @@ func (d *v1GetInstancesDataSource) Read(ctx context.Context, req datasource.Read
 			Fault:        types.BoolValue(instance.GetFault()),
 		}
 
+		// if instance.Services != nil {
+		// 	if instance.Services.Vpn != nil {
+		// 		instanceState.Services = []Services{
+		// 			{
+		// 				VPN: []VPN{
+		// 					{
+		// 						Proxy: types.StringValue(instance.Services.Vpn.GetProxy()),
+		// 				},
+		// 			},
+		// 		}
+		// 	}
+		// }
+
+		// Convert AdditionalTags from []InstanceBootOptionsAdditionalTag to []basetypes.StringValue
+		additionalTags := make([]basetypes.StringValue, len(instance.BootOptions.GetAdditionalTags()))
+		for i, tag := range instance.BootOptions.GetAdditionalTags() {
+			additionalTags[i] = basetypes.NewStringValue(string(tag)) // Use constructor function to create a new basetypes.StringValue
+		}
 		if instance.BootOptions != nil {
 			instanceState.BootOptions = []BootOptions{
 				{
@@ -355,6 +352,10 @@ func (d *v1GetInstancesDataSource) Read(ctx context.Context, req datasource.Read
 					RandomSeed:      types.StringValue(instance.BootOptions.GetRandomSeed()),
 					PAC:             types.BoolValue(instance.BootOptions.GetPac()),
 					APRR:            types.BoolValue(instance.BootOptions.GetAprr()),
+					AdditionalTags:  additionalTags,
+
+					// AdditionalTags:  []basetypes.StringValue(instance.BootOptions.GetAdditionalTags()),
+					// AdditionalTags:  types.StringValue(instance.BootOptions.GetAdditionalTags()),
 				},
 			}
 		}
