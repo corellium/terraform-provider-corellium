@@ -11,32 +11,32 @@ import (
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ datasource.DataSource              = &ReadyDataSource{}
-	_ datasource.DataSourceWithConfigure = &ReadyDataSource{}
+	_ datasource.DataSource              = &V1ReadyDataSource{}
+	_ datasource.DataSourceWithConfigure = &V1ReadyDataSource{}
 )
 
 // NewCorelliumDataSource is a helper function to simplify the provider implementation.
-func NewCorelliumReadyDataSource() datasource.DataSource {
-	return &ReadyDataSource{}
+func NewCorelliumV1ReadyDataSource() datasource.DataSource {
+	return &V1ReadyDataSource{}
 }
 
 // corelliumDataSource is the data source implementation.
-type ReadyDataSource struct {
+type V1ReadyDataSource struct {
 	client *corellium.APIClient
 }
 
 // corelliumDataSourceModel maps the data source schema data.
-type ReadyModel struct {
+type V1ReadyModel struct {
 	Status types.String `tfsdk:"status"`
 }
 
 // Metadata returns the data source type name.
-func (d *ReadyDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_ready"
+func (d *V1ReadyDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_v1ready"
 }
 
 // Schema defines the schema for the data source.
-func (d *ReadyDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *V1ReadyDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"status": schema.StringAttribute{
@@ -47,8 +47,8 @@ func (d *ReadyDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, 
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (d *ReadyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var state ReadyModel
+func (d *V1ReadyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var state V1ReadyModel
 
 	status, err := d.client.StatusApi.V1Ready(ctx).Execute()
 	if err != nil {
@@ -59,7 +59,7 @@ func (d *ReadyDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 	// Map response body to model
-	statusState := ReadyModel{
+	statusState := V1ReadyModel{
 		Status: types.StringValue(status.Status),
 	}
 	state.Status = statusState.Status
@@ -72,7 +72,7 @@ func (d *ReadyDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 }
 
 // Configure adds the provider configured client to the data source.
-func (d *ReadyDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, _ *datasource.ConfigureResponse) {
+func (d *V1ReadyDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, _ *datasource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}

@@ -12,7 +12,7 @@ provider "corellium" {
   token = ""
 }
 
-resource "corellium_image" "example" {
+resource "corellium_v1image" "example" {
   name = "example"
   type = "backup"
   project = "fa79475c-2703-4ccc-bc17-1876c2593ec6"

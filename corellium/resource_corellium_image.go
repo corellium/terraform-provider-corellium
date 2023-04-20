@@ -5,31 +5,32 @@ import (
 	"io"
 	"math/big"
 
+	"terraform-provider-corellium/corellium/pkg/api"
+
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.Resource              = &ImageResource{}
-	_ resource.ResourceWithConfigure = &ImageResource{}
+	_ resource.Resource              = &CorelliumV1ImageResource{}
+	_ resource.ResourceWithConfigure = &CorelliumV1ImageResource{}
 )
 
-// NewCorelliumImageResource is a helper function to simplify the provider implementation.
-func NewCorelliumImageResource() resource.Resource {
-	return &ImageResource{}
+// NewCorelliumV1ImageResource is a helper function to simplify the provider implementation.
+func NewCorelliumV1ImageResource() resource.Resource {
+	return &CorelliumV1ImageResource{}
 }
 
-// ImageResource is the data source implementation.
-type ImageResource struct {
+// CorelliumV1ImageResource is the data source implementation.
+type CorelliumV1ImageResource struct {
 	client *corellium.APIClient
 }
 
-// ImageModel maps the data source schema data.
-type ImageModel struct {
+// V1ImageModel maps the data source schema data.
+type V1ImageModel struct {
 	Status    types.String `tfsdk:"status"`
 	Id        types.String `tfsdk:"id"`
 	Name      types.String `tfsdk:"name"`
@@ -43,12 +44,12 @@ type ImageModel struct {
 }
 
 // Metadata returns the data source type name.
-func (d *ImageResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_image"
+func (d *CorelliumV1ImageResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_v1image"
 }
 
 // Schema defines the schema for the data source.
-func (d *ImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (d *CorelliumV1ImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"status": schema.StringAttribute{
@@ -89,8 +90,8 @@ func (d *ImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 }
 
 // Create creates the resource and sets the initial Terraform state.
-func (d *ImageResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan ImageModel
+func (d *CorelliumV1ImageResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan V1ImageModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -141,8 +142,8 @@ func (d *ImageResource) Create(ctx context.Context, req resource.CreateRequest, 
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (d *ImageResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state ImageModel
+func (d *CorelliumV1ImageResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state V1ImageModel
 
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -168,7 +169,7 @@ func (d *ImageResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
-	diags = resp.State.Set(ctx, &ImageModel{
+	diags = resp.State.Set(ctx, &V1ImageModel{
 		Status:    types.StringValue(image.Status),
 		Id:        types.StringValue(image.GetId()),
 		Name:      types.StringValue(image.GetName()),
@@ -188,13 +189,13 @@ func (d *ImageResource) Read(ctx context.Context, req resource.ReadRequest, resp
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
-func (d *ImageResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (d *CorelliumV1ImageResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// NOTICE: Can a image be updated?
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
-func (d *ImageResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state ImageModel
+func (d *CorelliumV1ImageResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state V1ImageModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -221,7 +222,7 @@ func (d *ImageResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 }
 
 // Configure adds the provider configured client to the data source.
-func (d *ImageResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
+func (d *CorelliumV1ImageResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
