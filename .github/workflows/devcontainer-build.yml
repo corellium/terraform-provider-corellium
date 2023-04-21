@@ -20,9 +20,9 @@ jobs:
         with:
           imageName: ghcr.io/aimoda/terraform-provider-corellium-devcontainer
           cacheFrom: ghcr.io/aimoda/terraform-provider-corellium-devcontainer
-          push: filter
-          refFilterForPush: refs/heads/main
-          eventFilterForPush: push
+          push: never
+          # refFilterForPush: refs/heads/main
+          # eventFilterForPush: push
         #   # Change this to be your CI task/script
         #   runCmd: yarn test
 
