@@ -2,17 +2,15 @@ package corellium
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"math/big"
 	"time"
-
-	"terraform-provider-corellium/corellium/pkg/api"
 
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -26,40 +24,58 @@ func NewCorelliumV1ProjectResource() resource.Resource {
 	return &CorelliumV1ProjectResource{}
 }
 
-// CorelliumV1ProjectResource is the data source implementation.
+// CorelliumV1ProjectResource is the resource implementation.
 type CorelliumV1ProjectResource struct {
 	client *corellium.APIClient
 }
 
 type V1ProjectSettingsModel struct {
-	Version        types.Number `tfsdk:"version"`
-	InternetAccess types.Bool   `tfsdk:"internet_access"`
-	Dhcp           types.Bool   `tfsdk:"dhcp"`
+	// Version is the project version.
+	Version types.Number `tfsdk:"version"`
+	// InternetAccess is a boolean that defines if the project has Internet access.
+	InternetAccess types.Bool `tfsdk:"internet_access"`
+	// Dhcp is a boolean that defines if the project has DHCP enabled.
+	Dhcp types.Bool `tfsdk:"dhcp"`
 }
 
 type V1ProjectQuotasModel struct {
-	Name      types.String `tfsdk:"name"`
-	Cores     types.Number `tfsdk:"cores"`
+	// Name is the project name.
+	Name types.String `tfsdk:"name"`
+	// Core is the project cores quota.
+	Cores types.Number `tfsdk:"cores"`
+	// Instances is the project instances quota.
 	Instances types.Number `tfsdk:"instances"`
-	Ram       types.Number `tfsdk:"ram"`
+	// Ram is the project RAM quota.
+	Ram types.Number `tfsdk:"ram"`
 }
 
-// V1ProjectModel maps the data source schema data.
+// V1ProjectModel maps the resource schema data.
+// https://github.com/aimoda/go-corellium-api-client/blob/main/docs/Project.md
 type V1ProjectModel struct {
-	Id        types.String            `tfsdk:"id"`
-	Name      types.String            `tfsdk:"name"`
-	Settings  *V1ProjectSettingsModel `tfsdk:"settings"`
-	Quotas    *V1ProjectQuotasModel   `tfsdk:"quotas"`
-	CreatedAt types.String            `tfsdk:"created_at"`
-	UpdatedAt types.String            `tfsdk:"updated_at"`
+	// Id is the project ID.
+	// The project ID is a uuid, universally unique identifier.
+	Id types.String `tfsdk:"id"`
+	// Name is the project name.
+	Name types.String `tfsdk:"name"`
+	// Settings is the project settings.
+	Settings *V1ProjectSettingsModel `tfsdk:"settings"`
+	// Quotas is the project quotas.
+	Quotas *V1ProjectQuotasModel `tfsdk:"quotas"`
+	// CreatedAt is the project creation date.
+	CreatedAt types.String `tfsdk:"created_at"`
+	// UpdatedAt is the project last update date.
+	UpdatedAt types.String `tfsdk:"updated_at"`
 }
 
-// Metadata returns the data source type name.
+// Metadata returns the resource type name.
 func (d *CorelliumV1ProjectResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_v1project"
+	// TypeName is the name of the resource type, which must be unique within the provider.
+	// This is used to identify the resource type in state and plan files.
+	// i.e: resource corellium_v1project "project" { ... }
 }
 
-// Schema defines the schema for the data source.
+// Schema defines the schema for the resource.
 func (d *CorelliumV1ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
@@ -91,7 +107,7 @@ func (d *CorelliumV1ProjectResource) Schema(_ context.Context, _ resource.Schema
 			},
 			"quotas": schema.SingleNestedAttribute{
 				Description: "Project quotas",
-				Required:    true,
+				Optional:    true,
 				Attributes: map[string]schema.Attribute{
 					"name": schema.StringAttribute{
 						Description: "Project quota name",
@@ -117,6 +133,7 @@ func (d *CorelliumV1ProjectResource) Schema(_ context.Context, _ resource.Schema
 			},
 			"updated_at": schema.StringAttribute{
 				Description: "Project updated at",
+				Optional:    true,
 				Computed:    true,
 			},
 		},
@@ -126,42 +143,41 @@ func (d *CorelliumV1ProjectResource) Schema(_ context.Context, _ resource.Schema
 // Create creates the resource and sets the initial Terraform state.
 func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan V1ProjectModel
+
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// TODO: Is there a better way to do that?
 	BigFloatToFloat32 := func(bf *big.Float) float32 {
 		f, _ := bf.Float32()
 		return f
 	}
 
-	s := corellium.NewProjectSettingsWithDefaults()
-	s.SetVersion(BigFloatToFloat32(plan.Settings.Version.ValueBigFloat()))
-	s.SetInternetAccess(plan.Settings.InternetAccess.ValueBool())
-	s.SetDhcp(plan.Settings.Dhcp.ValueBool())
-
-	q := corellium.NewProjectQuotaWithDefaults()
-	q.SetCores(BigFloatToFloat32(plan.Quotas.Cores.ValueBigFloat()))
-	q.SetInstances(BigFloatToFloat32(plan.Quotas.Instances.ValueBigFloat()))
-	q.SetRam(BigFloatToFloat32(plan.Quotas.Ram.ValueBigFloat()))
-
 	p := corellium.NewProjectWithDefaults()
 	p.SetName(plan.Name.ValueString())
-	p.SetSettings(*s)
-	p.SetQuotas(*q)
+
+	if plan.Settings != nil {
+		s := corellium.NewProjectSettingsWithDefaults()
+		s.SetVersion(BigFloatToFloat32(plan.Settings.Version.ValueBigFloat()))
+		s.SetInternetAccess(plan.Settings.InternetAccess.ValueBool())
+		s.SetDhcp(plan.Settings.Dhcp.ValueBool())
+
+		p.SetSettings(*s)
+	}
+
+	if plan.Quotas != nil {
+		q := corellium.NewProjectQuotaWithDefaults()
+		q.SetCores(BigFloatToFloat32(plan.Quotas.Cores.ValueBigFloat()))
+		q.SetInstances(BigFloatToFloat32(plan.Quotas.Instances.ValueBigFloat()))
+		q.SetRam(BigFloatToFloat32(plan.Quotas.Ram.ValueBigFloat()))
+
+		p.SetQuotas(*q)
+	}
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	project, r, err := d.client.ProjectsApi.V1CreateProject(auth).Project(*p).Execute()
-
-	fmt.Printf("%+v", project)
-	fmt.Println(project.Settings)
-	fmt.Println(project.Quotas)
-	fmt.Println(r)
-	fmt.Println(err)
-
+	created, r, err := d.client.ProjectsApi.V1CreateProject(auth).Project(*p).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -179,30 +195,38 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
-	plan.Id = types.StringValue(project.GetId())
-	plan.Settings.Dhcp = types.BoolValue(project.Settings.GetDhcp())
-	plan.Quotas.Name = types.StringValue(project.GetName())
-	plan.CreatedAt = types.StringValue(time.Now().Format(time.RFC3339))
-	plan.UpdatedAt = types.StringValue(time.Now().Format(time.RFC3339))
-	/*plan.Settings = &V1ProjectSettingsModel{
-		Version:        types.NumberValue(big.NewFloat(float64(project.Settings.GetVersion()))),
-		InternetAccess: types.BoolValue(project.Settings.GetInternetAccess()),
-		Dhcp:           types.BoolValue(project.Settings.GetDhcp()),
+	project, r, err := d.client.ProjectsApi.V1GetProject(auth, created.GetId()).Execute()
+	if err != nil {
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error get the creatd project",
+				"Coudn't read the response body: "+err.Error(),
+			)
+			return
+		}
+
+		resp.Diagnostics.AddError(
+			"Error to get created project",
+			"An unexpected error was encountered trying to create the project:\n\n"+string(b),
+		)
+		return
 	}
-	plan.Quotas = &V1ProjectQuotasModel{
-		Name:      types.StringValue(project.GetName()),
-		Cores:     types.NumberValue(big.NewFloat(float64(project.Quotas.GetCores()))),
-		Instances: types.NumberValue(big.NewFloat(float64(project.Quotas.GetInstances()))),
-		Ram:       types.NumberValue(big.NewFloat(float64(project.Quotas.GetRam()))),
-	}*/
-	/*plan.Settings.Version = types.NumberValue(big.NewFloat(float64(project.Settings.GetVersion())))
+
+	plan.Id = types.StringValue(project.GetId())
+	plan.Name = types.StringValue(project.GetName())
+
+	plan.Settings.Version = types.NumberValue(big.NewFloat(float64(project.Settings.GetVersion())))
 	plan.Settings.InternetAccess = types.BoolValue(project.Settings.GetInternetAccess())
 	plan.Settings.Dhcp = types.BoolValue(project.Settings.GetDhcp())
 
 	plan.Quotas.Name = types.StringValue(project.GetName())
 	plan.Quotas.Cores = types.NumberValue(big.NewFloat(float64(project.Quotas.GetCores())))
 	plan.Quotas.Instances = types.NumberValue(big.NewFloat(float64(project.Quotas.GetInstances())))
-	plan.Quotas.Ram = types.NumberValue(big.NewFloat(float64(project.Quotas.GetRam())))*/
+	plan.Quotas.Ram = types.NumberValue(big.NewFloat(float64(project.Quotas.GetRam())))
+
+	plan.CreatedAt = types.StringValue(time.Now().Format(time.RFC3339))
+	plan.UpdatedAt = types.StringValue(time.Now().Format(time.RFC3339))
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -239,21 +263,20 @@ func (d *CorelliumV1ProjectResource) Read(ctx context.Context, req resource.Read
 		return
 	}
 
-	diags = resp.State.Set(ctx, &V1ProjectModel{
-		Id:   types.StringValue(project.GetId()),
-		Name: types.StringValue(project.GetName()),
-		Settings: &V1ProjectSettingsModel{
-			Version:        types.NumberValue(big.NewFloat(float64(project.Settings.GetVersion()))),
-			InternetAccess: types.BoolValue(project.Settings.GetInternetAccess()),
-			Dhcp:           types.BoolValue(project.Settings.GetDhcp()),
-		},
-		Quotas: &V1ProjectQuotasModel{
-			Name:      types.StringValue(project.GetName()),
-			Cores:     types.NumberValue(big.NewFloat(float64(project.Quotas.GetCores()))),
-			Instances: types.NumberValue(big.NewFloat(float64(project.Quotas.GetInstances()))),
-			Ram:       types.NumberValue(big.NewFloat(float64(project.Quotas.GetRam()))),
-		},
-	})
+	state.Id = types.StringValue(project.GetId())
+	state.Name = types.StringValue(project.GetName())
+
+	state.Settings.Version = types.NumberValue(big.NewFloat(float64(project.Settings.GetVersion())))
+	state.Settings.InternetAccess = types.BoolValue(project.Settings.GetInternetAccess())
+	state.Settings.Dhcp = types.BoolValue(project.Settings.GetDhcp())
+
+	state.Quotas.Name = types.StringValue(project.GetName())
+	state.Quotas.Cores = types.NumberValue(big.NewFloat(float64(project.Quotas.GetCores())))
+	state.Quotas.Instances = types.NumberValue(big.NewFloat(float64(project.Quotas.GetInstances())))
+	state.Quotas.Ram = types.NumberValue(big.NewFloat(float64(project.Quotas.GetRam())))
+
+	state.CreatedAt = types.StringValue(time.Now().Format(time.RFC3339))
+	state.UpdatedAt = types.StringValue(time.Now().Format(time.RFC3339))
 
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -263,8 +286,19 @@ func (d *CorelliumV1ProjectResource) Read(ctx context.Context, req resource.Read
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	/*var state V1ProjectModel
+	var state V1ProjectModel
+	// state is the current state of the resource.
+
 	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var plan V1ProjectModel
+	// plan is the proposed new state of the resource.
+
+	diags = req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -275,22 +309,29 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 		return f
 	}
 
-	s := corellium.NewProjectSettingsWithDefaults()
-	s.SetDhcp(state.Settings.Dhcp.ValueBool())
+	p := corellium.NewProject(state.Id.ValueString())
+	p.SetName(plan.Name.ValueString())
 
-	q := corellium.NewProjectQuotaWithDefaults()
-	q.SetCores(BigFloatToFloat32(state.Quotas.Cores.ValueBigFloat()))
-	q.SetInstances(BigFloatToFloat32(state.Quotas.Instances.ValueBigFloat()))
-	q.SetRam(BigFloatToFloat32(state.Quotas.Ram.ValueBigFloat()))
+	if plan.Settings != nil {
+		s := corellium.NewProjectSettings()
+		s.SetVersion(BigFloatToFloat32(plan.Settings.Version.ValueBigFloat()))
+		s.SetInternetAccess(plan.Settings.InternetAccess.ValueBool())
+		s.SetDhcp(plan.Settings.Dhcp.ValueBool())
 
-	p := corellium.NewProjectWithDefaults()
-	p.SetName(state.Name.ValueString())
-	p.SetSettings(*s)
-	p.SetQuotas(*q)
+		p.SetSettings(*s)
+	}
+
+	if plan.Quotas != nil {
+		q := corellium.NewProjectQuota()
+		q.SetCores(BigFloatToFloat32(plan.Quotas.Cores.ValueBigFloat()))
+		q.SetInstances(BigFloatToFloat32(plan.Quotas.Instances.ValueBigFloat()))
+		q.SetRam(BigFloatToFloat32(plan.Quotas.Ram.ValueBigFloat()))
+
+		p.SetQuotas(*q)
+	}
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	project, r, err := d.client.ProjectsApi.V1UpdateProject(auth, state.Id.ValueString()).Project(*p).Execute()
-
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -309,14 +350,24 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 	}
 
 	state.Id = types.StringValue(project.GetId())
+	state.Name = types.StringValue(project.GetName())
+
+	state.Settings.Version = types.NumberValue(big.NewFloat(float64(project.Settings.GetVersion())))
+	state.Settings.InternetAccess = types.BoolValue(project.Settings.GetInternetAccess())
 	state.Settings.Dhcp = types.BoolValue(project.Settings.GetDhcp())
+
 	state.Quotas.Name = types.StringValue(project.GetName())
+	state.Quotas.Cores = types.NumberValue(big.NewFloat(float64(project.Quotas.GetCores())))
+	state.Quotas.Instances = types.NumberValue(big.NewFloat(float64(project.Quotas.GetInstances())))
+	state.Quotas.Ram = types.NumberValue(big.NewFloat(float64(project.Quotas.GetRam())))
+
+	state.UpdatedAt = types.StringValue(time.Now().Format(time.RFC3339))
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
-	}*/
+	}
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
@@ -347,7 +398,7 @@ func (d *CorelliumV1ProjectResource) Delete(ctx context.Context, req resource.De
 	}
 }
 
-// Configure adds the provider configured client to the data source.
+// Configure adds the provider configured client to the resource.
 func (d *CorelliumV1ProjectResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
