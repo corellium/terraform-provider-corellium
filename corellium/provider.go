@@ -7,8 +7,6 @@ import (
 
 	"terraform-provider-corellium/corellium/pkg/api"
 
-	"terraform-provider-corellium/corellium/pkg/api"
-
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -133,6 +131,8 @@ func (p *corelliumProvider) DataSources(_ context.Context) []func() datasource.D
 	return []func() datasource.DataSource{
 		NewCorelliumV1ReadyDataSource,
 		NewCorelliumV1GetInstancesSource,
+		NewCorelliumV1SupportedModelsDataSource,
+		NewCorelliumV1ModelSoftwareDataSource,
 	}
 }
 
