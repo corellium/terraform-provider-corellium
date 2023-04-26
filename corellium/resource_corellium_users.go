@@ -2,7 +2,6 @@ package corellium
 
 import (
 	"context"
-	"fmt"
 
 	"terraform-provider-corellium/corellium/pkg/api"
 
@@ -42,7 +41,7 @@ func (d *CorelliumV1UserResource) Metadata(_ context.Context, req resource.Metad
 	resp.TypeName = req.ProviderTypeName + "_v1user"
 	// TypeName is the name of the resource type, which must be unique within the provider.
 	// This is used to identify the resource type in state and plan files.
-	// i.e: resource corellium_v1createuser "user" { ... }
+	// i.e: resource corellium_v1user "user" { ... }
 }
 
 // Schema defines the schema for the resource.
@@ -51,6 +50,8 @@ func (d *CorelliumV1UserResource) Schema(_ context.Context, _ resource.SchemaReq
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "The ID of the created user",
+				Required:    false,
+				Optional:    false,
 				Computed:    true,
 			},
 			"name": schema.StringAttribute{
@@ -201,7 +202,8 @@ func (d *CorelliumV1UserResource) Update(ctx context.Context, req resource.Updat
 	//Update the user
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	// Takes the user uuID as a parameter and a map[string]interface{} as a body containing the user data to update
-	user, _, err := d.client.UsersApi.V1UpdateUser(auth, state.ID.ValueString()).Body(updatedUserMap).Execute()
+	_, _, err := d.client.UsersApi.V1UpdateUser(auth, state.ID.ValueString()).Body(updatedUserMap).Execute()
+	// Returns an empty body and a 200 status code on success
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to update the corellium user: "+state.ID.ValueString(),
@@ -209,75 +211,16 @@ func (d *CorelliumV1UserResource) Update(ctx context.Context, req resource.Updat
 		)
 		return
 	}
-	for key, value := range user {
-		fmt.Printf("%v: %v\n", key, value)
-	}
 
-	// Set updated state
-	userID, ok := user["id"].(string)
-	if !ok {
-		// Handle the case where the type assertion fails
-		resp.Diagnostics.AddError(
-			"Invalid or missing 'id' field in created user object",
-			"An unexpected error occurred while reading the response map",
-		)
-		return
-	}
-	userName, ok := user["name"].(string)
-	if !ok {
-		// Handle the case where the type assertion fails
-		resp.Diagnostics.AddError(
-			"Invalid or missing 'name' field in created user object",
-			"An unexpected error occurred while reading the response map",
-		)
-		return
-	}
-	userLabel, ok := user["label"].(string)
-	if !ok {
-		// Handle the case where the type assertion fails
-		resp.Diagnostics.AddError(
-			"Invalid or missing 'label' field in created user object",
-			"An unexpected error occurred while reading the response map",
-		)
-		return
-	}
-	userEmail, ok := user["email"].(string)
-	if !ok {
-		// Handle the case where the type assertion fails
-		resp.Diagnostics.AddError(
-			"Invalid or missing 'email' field in created user object",
-			"An unexpected error occurred while reading the response map",
-		)
-		return
-	}
-	userPassword, ok := user["password"].(string)
-	if !ok {
-		// Handle the case where the type assertion fails
-		resp.Diagnostics.AddError(
-			"Invalid or missing 'password' field in created user object",
-			"An unexpected error occurred while reading the response map",
-		)
-		return
-	}
-	userAdministrator, ok := user["administrator"].(bool)
-	if !ok {
-		// Handle the case where the type assertion fails
-		resp.Diagnostics.AddError(
-			"Invalid or missing 'administrator' field in created user object",
-			"An unexpected error occurred while reading the response map",
-		)
-		return
-	}
-
-	state.ID = types.StringValue(userID)
-	state.Name = types.StringValue(userName)
-	state.Label = types.StringValue(userLabel)
-	state.Email = types.StringValue(userEmail)
-	state.Password = types.StringValue(userPassword)
-	state.Administrator = types.BoolValue(userAdministrator)
+	// Set updated state by using plan (update) values if successful. Keep the ID from the current state.
+	state.Name = update.Name
+	state.Label = update.Label
+	state.Email = update.Email
+	state.Administrator = update.Administrator
+	state.Password = update.Password
 
 	// Set refreshed state with the updated User data.
-	diags = resp.State.Set(ctx, &state)
+	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

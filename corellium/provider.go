@@ -89,8 +89,6 @@ func (p *corelliumProvider) Configure(ctx context.Context, req provider.Configur
 
 	api.SetAccessToken(token)
 
-	api.SetAccessToken(token)
-
 	// If any of the expected configurations are missing, return
 	// errors with provider-specific guidance.
 
