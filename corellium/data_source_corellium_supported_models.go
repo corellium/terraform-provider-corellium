@@ -154,7 +154,7 @@ func (d *V1SupportedModelsDataSource) Read(ctx context.Context, req datasource.R
 	}
 
 	// Intentional placeholder ID
-	// As stated in the docs, The testing framework requires an id attribute to be present in every data source and resource. In 	order to run tests on data sources and resources that do not have their own ID, you must implement an ID field with a placeholder value.
+	// As stated in the docs, The testing framework requires an id attribute to be present in every data source and resource. In order to run tests on data sources and resources that do not have their own ID, you must implement an ID field with a placeholder value.
 	state.ID = types.StringValue("placeholder")
 
 	// Set state

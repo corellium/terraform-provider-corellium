@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"terraform-provider-corellium/corellium/pkg/api"
+
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -12,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces
@@ -144,6 +145,7 @@ func (p *corelliumProvider) Resources(_ context.Context) []func() resource.Resou
 		NewCorelliumV1ImageResource,
 		NewCorelliumV1ProjectResource,
 		NewCorelliumV1TeamResource,
+		NewCorelliumV1UserResource,
 		NewCorelliumV1SnapshotResource,
 	}
 }
