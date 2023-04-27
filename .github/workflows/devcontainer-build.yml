@@ -6,6 +6,8 @@ on:
     branches:
       - 'staging'
       - 'main'
+  schedule:
+      - cron: '0 12 * * *' # This will run the workflow every day at 00:00 UTC
 
 jobs:
   build:
@@ -28,8 +30,3 @@ jobs:
             make install
             make test
             make testacc
-
-        # refFilterForPush: refs/heads/main
-        # eventFilterForPush: push
-        #   # Change this to be your CI task/script
-        #   runCmd: yarn test
