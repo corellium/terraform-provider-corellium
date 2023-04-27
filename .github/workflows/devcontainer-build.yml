@@ -21,15 +21,14 @@ jobs:
           imageName: ghcr.io/aimoda/terraform-provider-corellium-devcontainer
           cacheFrom: ghcr.io/aimoda/terraform-provider-corellium-devcontainer
           push: never
-          # refFilterForPush: refs/heads/main
-          # eventFilterForPush: push
+          runCmd: |
+            export CORELLIUM_API_TOKEN=${{ secrets.CORELLIUM_API_TOKEN }}
+            go get
+            go mod tidy
+            go install .
+            TF_ACC=1 go test -v ./...
+
+        # refFilterForPush: refs/heads/main
+        # eventFilterForPush: push
         #   # Change this to be your CI task/script
         #   runCmd: yarn test
-
-      # - name: Run Go Automated Tests
-      #   run: |
-      #     cd /workspaces/terraform-provider-corellium
-      #     go get
-      #     go mod tidy
-      #     go install .
-      #     TF_ACC=1 go test -v ./...

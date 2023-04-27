@@ -63,18 +63,35 @@ func (p *corelliumProvider) Configure(ctx context.Context, req provider.Configur
 		return
 	}
 
-	token := os.Getenv("CORELLIUM_TOKEN")
-	if !(config.Token.ValueString() == "") {
-		// Handle the case when config.Token is empty replace with ENV var
-		token = config.Token.ValueString()
-	}
+	// If any of the expected configurations are missing, return
+	// errors with provider-specific guidance.
 
 	if config.Token.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("token"),
 			"Unknown Corellium Token",
 			"The provider cannot create the Corellium API client as there is an unknown configuration value for the Corellium API token. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the CORELLIUM_TOKEN environment variable.",
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the CORELLIUM_API_TOKEN environment variable.",
+		)
+	}
+
+	// Default values to environment variables, but override
+	// with Terraform configuration value if set.
+	token := os.Getenv("CORELLIUM_API_TOKEN")
+	if !(config.Token.IsNull()) {
+		if !(config.Token.ValueString() == "") {
+			// Handle the case when config.Token is empty replace with ENV var
+			token = config.Token.ValueString()
+		}
+	}
+
+	if token == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("token"),
+			"Missing Corellium API Token",
+			"The provider cannot create the Corellium API client as there is a missing or empty value for the Corellium API token. "+
+				"Set the token value in the configuration or use the CORELLIUM_API_TOKEN environment variable. "+
+				"If either is already set, ensure the value is not empty.",
 		)
 	}
 
@@ -82,23 +99,7 @@ func (p *corelliumProvider) Configure(ctx context.Context, req provider.Configur
 		return
 	}
 
-	// Default values to environment variables, but override
-	// with Terraform configuration value if set.
-
 	api.SetAccessToken(token)
-
-	// If any of the expected configurations are missing, return
-	// errors with provider-specific guidance.
-
-	if token == "" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("token"),
-			"Missing Corellium API Token",
-			"The provider cannot create the Corellium API client as there is a missing or empty value for the Corellium API token. "+
-				"Set the token value in the configuration or use the CORELLIUM_TOKEN environment variable. "+
-				"If either is already set, ensure the value is not empty.",
-		)
-	}
 
 	if resp.Diagnostics.HasError() {
 		return
