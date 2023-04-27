@@ -25,8 +25,9 @@ jobs:
             export CORELLIUM_API_TOKEN=${{ secrets.CORELLIUM_API_TOKEN }}
             go get
             go mod tidy
-            go install .
-            TF_ACC=1 go test -v ./...
+            make install
+            make test
+            make testacc
 
         # refFilterForPush: refs/heads/main
         # eventFilterForPush: push
