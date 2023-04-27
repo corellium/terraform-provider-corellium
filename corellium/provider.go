@@ -63,8 +63,11 @@ func (p *corelliumProvider) Configure(ctx context.Context, req provider.Configur
 		return
 	}
 
-	// If practitioner provided a configuration value for any of the
-	// attributes, it must be a known value.
+	token := os.Getenv("CORELLIUM_TOKEN")
+	if !(config.Token.ValueString() == "") {
+		// Handle the case when config.Token is empty replace with ENV var
+		token = config.Token.ValueString()
+	}
 
 	if config.Token.IsUnknown() {
 		resp.Diagnostics.AddAttributeError(
@@ -81,11 +84,6 @@ func (p *corelliumProvider) Configure(ctx context.Context, req provider.Configur
 
 	// Default values to environment variables, but override
 	// with Terraform configuration value if set.
-
-	token := os.Getenv("CORELLIUM_TOKEN")
-	if !config.Token.IsNull() {
-		token = config.Token.ValueString()
-	}
 
 	api.SetAccessToken(token)
 
