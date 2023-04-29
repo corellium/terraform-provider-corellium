@@ -133,7 +133,7 @@ func (d *CorelliumV1ProjectResource) Schema(_ context.Context, _ resource.Schema
 			},
 			"updated_at": schema.StringAttribute{
 				Description: "Project updated at",
-				Optional:    true,
+				Optional:    true, // TODO: Check if the `Optional` flag is required.
 				Computed:    true,
 			},
 		},

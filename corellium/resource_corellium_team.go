@@ -4,11 +4,12 @@ import (
 	"context"
 	"io"
 
+	"terraform-provider-corellium/corellium/pkg/api"
+
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -177,6 +178,7 @@ func (d *CorelliumV1TeamResource) Read(ctx context.Context, req resource.ReadReq
 			state.Id = types.StringValue(team.Id)
 			state.Label = types.StringValue(team.Label)
 			state.Users = make([]V1TeamUserModel, len(team.Users))
+			// TODO: add the user model instead of the only ID.
 			for i, user := range team.Users {
 				state.Users[i].Id = types.StringValue(user.Id)
 			}

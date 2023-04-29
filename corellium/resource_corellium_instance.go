@@ -49,7 +49,7 @@ type V1InstanceNetmonModel struct {
 	Enabled types.Bool   `tfsdk:"enabled"`
 }
 
-type V1InstanceCreatedByModel struct {
+type V1InstanceCreatedByModel struct { // TODO: rename to user or use the user model.
 	// Id is the user who created the instance.
 	Id types.String `tfsdk:"id"`
 	// Username is the username of the user who created the instance.
@@ -243,6 +243,7 @@ func (d *CorelliumV1InstanceResource) Schema(_ context.Context, _ resource.Schem
 						Computed:    true,
 					},
 					"additional_tags": schema.ListAttribute{
+						// TODO: add validation to this list.
 						Description: "Instance boot options additional tags",
 						ElementType: types.StringType,
 						Computed:    true,
