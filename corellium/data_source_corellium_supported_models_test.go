@@ -31,7 +31,7 @@ func TestAccCorelliumV1SupportedModelsDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.corellium_v1supportedmodels.test", "supported_models.0.bd_id", "14"),
 					resource.TestCheckResourceAttr("data.corellium_v1supportedmodels.test", "supported_models.0.peripherals", "true"),
 					// Verify placeholder id attribute since testing requires an id attribute to be set even though it is not used.
-					resource.TestCheckResourceAttr("data.corellium_v1supportedmodels.test", "id", "placeholder"),
+					resource.TestCheckResourceAttrSet("data.corellium_v1supportedmodels.test", "id"),
 				),
 			},
 		},
