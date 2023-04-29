@@ -8,4 +8,6 @@
 
 # Terraform Corellium Provider
 
+![build](https://github.com/aimoda/terraform-provider-corellium/actions/workflows/devcontainer-build.yml/badge.svg)
+
 The Corellium allows [Terraform](https://terraform.io) to manage [Corellium](https://www.corellium.com/) resources.
