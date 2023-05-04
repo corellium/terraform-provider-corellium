@@ -3,6 +3,7 @@ package corellium
 import (
 	"context"
 	"io"
+	"time"
 
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -10,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"terraform-provider-corellium/corellium/pkg/api"
 )
 
@@ -830,6 +832,40 @@ func (d *CorelliumV1InstanceResource) Delete(ctx context.Context, req resource.D
 		resp.Diagnostics.AddError(
 			"Unable to delete instance",
 			"An unexpected error was encountered trying to delete the instance:\n\n"+string(b))
+		return
+	}
+
+	type deleteStateStructure struct {
+		Id string
+	}
+
+	const deleteState = "deleted"
+
+	deleteStateConf := &retry.StateChangeConf{
+		Refresh: func() (interface{}, string, error) {
+			instance, _, _ := d.client.InstancesApi.V1GetInstance(auth, state.Id.ValueString()).Execute()
+			if instance != nil {
+				return instance, string(instance.GetState()), nil
+			}
+
+			return deleteStateStructure{Id: state.Id.ValueString()}, deleteState, nil
+		},
+		Pending: []string{
+			V1InstanceStateDeleting,
+		},
+		Target: []string{
+			deleteState,
+		},
+		Delay:      5 * time.Second,
+		MinTimeout: 1 * time.Second,
+		Timeout:    5 * time.Minute,
+	}
+
+	if _, err = deleteStateConf.WaitForStateContext(ctx); err != nil {
+		resp.Diagnostics.AddError(
+			"Error deleting instance",
+			"An unexpected error was encountered trying to delete the instance:\n\n"+err.Error(),
+		)
 		return
 	}
 }
