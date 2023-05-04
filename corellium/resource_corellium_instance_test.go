@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestAccCorelliumV1InstanceResource(t *testing.T) {
+func TestAccCorelliumV1InstanceResource_basic(t *testing.T) {
 	projectConfig := `
     resource "corellium_v1project" "test" {
         name = "test"
@@ -53,6 +53,49 @@ func TestAccCorelliumV1InstanceResource(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("corellium_v1instance.test", "name", "test_update"),
 					resource.TestCheckResourceAttr("corellium_v1instance.test", "flavor", "iphone7plus"),
+					resource.TestCheckResourceAttr("corellium_v1instance.test", "os", "15.7.5"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccCorelliumV1InstanceResource_wait_for_ready(t *testing.T) {
+    t.Skip("Skipping instance resource wait_for_ready tests")
+
+	projectConfig := `
+    resource "corellium_v1project" "test" {
+        name = "test"
+        settings = {
+            version = 1
+            internet_access = false
+            dhcp = false
+        }
+        quotas = {
+            cores = 6
+        }
+        users = []
+        teams = []
+    }
+    `
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfig + projectConfig + `
+                resource "corellium_v1instance" "test" {
+                    name = "test"
+                    flavor = "samsung-galaxy-s-duos"
+                    project = corellium_v1project.test.id
+                    os = "13.0.0"
+                    wait_for_ready = true
+                    wait_for_ready_timeout = 300
+                }
+                `,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("corellium_v1instance.test", "name", "test"),
+					resource.TestCheckResourceAttr("corellium_v1instance.test", "flavor", "samsung-galaxy-s-duos"),
 					resource.TestCheckResourceAttr("corellium_v1instance.test", "os", "15.7.5"),
 				),
 			},

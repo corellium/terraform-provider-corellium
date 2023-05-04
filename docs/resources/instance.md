@@ -27,6 +27,10 @@ resource "corellium_v1instance" "example" {
 
 - `state` (string) - The state of the instance. Must be "on", "off" or "paused".
 
+- `wait_for_ready` (bool) - Indicate if the provider will wait until the instnace be ready. Default is `false`.
+
+- `wait_for_ready_timeout` (number) - Timeout, in seconds, to wait until the instance be ready. Default is `300`.
+
 ### Read-only
 
 - `id` (string) - The ID of the instance.

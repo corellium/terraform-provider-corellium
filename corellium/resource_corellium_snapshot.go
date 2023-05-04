@@ -3,7 +3,6 @@ package corellium
 import (
 	"context"
 	"io"
-	"net/http"
 
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -125,12 +124,9 @@ func (d *CorelliumV1SnapshotResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-	// NOTICE: As i'm using the "name" as a kind of custom id, i need to check if the snapshot already exists
-	// before to create it, thus i need to get all the snapshots of the instance and check if there is one with
-	// the same name.
-	// TODO: The looping through the snapshots can be expensive.
+	o := corellium.NewSnapshotCreationOptions(plan.Name.ValueString())
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	snapshots, r, err := d.client.SnapshotsApi.V1GetInstanceSnapshots(auth, plan.Instance.ValueString()).Execute()
+	snapshot, r, err := d.client.SnapshotsApi.V1CreateSnapshot(auth, plan.Instance.ValueString()).SnapshotCreationOptions(*o).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -143,43 +139,9 @@ func (d *CorelliumV1SnapshotResource) Create(ctx context.Context, req resource.C
 
 		resp.Diagnostics.AddError(
 			"Error creating snapshot",
-			"An unexpected error was encountered trying to find a snapshot with the same name:\n\n"+string(b),
+			"An unexpected error was encountered trying to create the snapshot:\n\n"+string(b),
 		)
 		return
-	}
-
-	var snapshot *corellium.Snapshot
-	for _, s := range snapshots {
-		if s.GetName() == plan.Name.ValueString() {
-			snapshot = &s
-			break
-		}
-	}
-
-	if snapshot == nil {
-		o := corellium.NewSnapshotCreationOptions(plan.Name.ValueString())
-		var err error
-		var r *http.Response
-		// NOTICE: When creating a snapshot, the server creating a task to create the snapshot, so we need to wait
-		// until the task is completed. Due to this, we can receive a error like "Instance is currently attempting to
-		// process a different task"
-		snapshot, r, err = d.client.SnapshotsApi.V1CreateSnapshot(auth, plan.Instance.ValueString()).SnapshotCreationOptions(*o).Execute()
-		if err != nil {
-			b, err := io.ReadAll(r.Body)
-			if err != nil {
-				resp.Diagnostics.AddError(
-					"Error creating snapshot",
-					"Coudn't read the response body: "+err.Error(),
-				)
-				return
-			}
-
-			resp.Diagnostics.AddError(
-				"Error creating snapshot",
-				"An unexpected error was encountered trying to create the snapshot:\n\n"+string(b),
-			)
-			return
-		}
 	}
 
 	plan.Id = types.StringValue(snapshot.GetId())

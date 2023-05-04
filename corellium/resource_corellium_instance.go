@@ -2,8 +2,11 @@ package corellium
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"time"
+
+	"terraform-provider-corellium/corellium/pkg/api"
 
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -12,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
-	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -96,6 +98,13 @@ const (
 	V1InstanceStateDeleting = "deleting"
 )
 
+const (
+	// V1InstancesTaskStateNone is the state of the instance when there is no task.
+	V1InstancesTaskStateNone = "none"
+	// V1InstancesTaskStateBuilding is the state of the instance when it is being built.
+	V1InstancesTaskStateBuilding = "building"
+)
+
 // coffeesModel maps coffees schema data.
 type V1InstanceModel struct {
 	// Id is the unique identifier of the instance.
@@ -144,6 +153,11 @@ type V1InstanceModel struct {
 	Patches    types.List             `tfsdk:"patches"`
 	// CreatedBy is the user who created the instance.
 	CreatedBy *V1InstanceCreatedByModel `tfsdk:"created_by"`
+	// WaitForReady is a boolean that indicates if the resource should wait for the instance to be ready.
+	WaitForReady types.Bool `tfsdk:"wait_for_ready"`
+	// WaitForReadyTimeout is the timeout in seconds to wait for the instance to be ready.
+	// WaitForReadyTimeout is a amount in seconds.
+	WaitForReadyTimeout types.Int64 `tfsdk:"wait_for_ready_timeout"`
 }
 
 // Metadata returns the resource type name.
@@ -371,6 +385,14 @@ func (d *CorelliumV1InstanceResource) Schema(_ context.Context, _ resource.Schem
 					},
 				},
 			},
+			"wait_for_ready": schema.BoolAttribute{
+				Description: "Wait for ready",
+				Optional:    true,
+			},
+			"wait_for_ready_timeout": schema.Int64Attribute{
+				Description: "Wait for ready timeout",
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -406,7 +428,68 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-	instance, r, err := d.client.InstancesApi.V1GetInstance(auth, created.Id).Execute()
+	plan.Id = types.StringValue(created.GetId())
+
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if !plan.WaitForReady.IsUnknown() && plan.WaitForReady.ValueBool() {
+		createStateConf := &retry.StateChangeConf{
+			Refresh: func() (interface{}, string, error) {
+				instance, r, err := d.client.InstancesApi.V1GetInstance(auth, created.GetId()).Execute()
+				if err != nil {
+					b, err := io.ReadAll(r.Body)
+					if err != nil {
+						resp.Diagnostics.AddError(
+							"Error creating instance",
+							"Coudn't read the response body when checking if instnace is ready: "+err.Error(),
+						)
+						return nil, "", err
+					}
+
+					resp.Diagnostics.AddError(
+						"Error creating snapshot",
+						"An unexpected error was encountered trying to check if instance is ready:\n\n"+string(b),
+					)
+					return nil, "", err
+				}
+
+				return instance, string(instance.GetState()), nil
+			},
+			Pending: []string{
+				V1InstanceStateCreating,
+				V1InstanceStateDeleting,
+			},
+			Target: []string{
+				V1InstanceStateOn,
+				V1InstanceStateOff,
+				V1InstanceStatePaused,
+			},
+			Delay:      5 * time.Second,
+			MinTimeout: 5 * time.Second,
+			Timeout: func() time.Duration {
+				if plan.WaitForReadyTimeout.IsUnknown() {
+					return 300
+				}
+
+				return time.Duration(plan.WaitForReadyTimeout.ValueInt64())
+			}() * time.Second,
+		}
+
+		if _, err := createStateConf.WaitForStateContext(ctx); err != nil {
+			resp.Diagnostics.AddError(
+				"Error creating snapshot",
+				"Coudn't create the snapshot: "+err.Error(),
+			)
+
+			return
+		}
+	}
+
+	instance, r, err := d.client.InstancesApi.V1GetInstance(auth, created.GetId()).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -424,7 +507,6 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-	plan.Id = types.StringValue(instance.GetId())
 	plan.Name = types.StringValue(instance.GetName())
 	plan.Key = types.StringValue(instance.GetKey())
 	plan.Flavor = types.StringValue(instance.GetFlavor())
@@ -464,11 +546,15 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
+	fmt.Println(proxy)
+
 	listeners, diags := types.MapValueFrom(ctx, types.StringType, instance.Services.GetVpn().Listeners)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	fmt.Println(listeners)
 
 	plan.Services = &V1InstanceServicesModel{
 		VPN: &V1InstanceVPNModel{
