@@ -2,9 +2,14 @@ package corellium
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
 	"terraform-provider-corellium/corellium/pkg/api"
 
 	"github.com/aimoda/go-corellium-api-client"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -27,6 +32,7 @@ type V1ModelSoftwareDataSource struct {
 }
 
 type V1SoftwareDataSourceModel struct {
+	ID             types.String      `tfsdk:"id"`
 	Model          types.String      `tfsdk:"model"`
 	Model_Software []V1SoftwareModel `tfsdk:"model_software"`
 }
@@ -42,7 +48,7 @@ type V1SoftwareModel struct {
 	Sha1_Sum       types.String `tfsdk:"sha1_sum"`
 	Sha256_Sum     types.String `tfsdk:"sha256_sum"`
 	// TODO: Waiting on Corellium to fix this int32 issue. Data is mostly within int64 range. But GetSize() is  a int32 function.
-	// Size           types.Int64  `tfsdk:"size"`
+	Size        types.Int64  `tfsdk:"size"`
 	Unique_Id   types.String `tfsdk:"unique_id"`
 	Upload_Date types.String `tfsdk:"upload_date"`
 	URL         types.String `tfsdk:"url"`
@@ -51,9 +57,8 @@ type V1SoftwareModel struct {
 	// Metadata Metadata `tfsdk:"metadata"`
 }
 
-// TODO: Waiting for updated bindings from David
 // type Metadata struct {
-
+// 	// TODO: Waiting for updated bindings from David
 // }
 
 // Metadata returns the data source type name.
@@ -65,6 +70,9 @@ func (d *V1ModelSoftwareDataSource) Metadata(_ context.Context, req datasource.M
 func (d *V1ModelSoftwareDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed: true,
+			},
 			"model": schema.StringAttribute{
 				Required: true,
 			},
@@ -104,9 +112,9 @@ func (d *V1ModelSoftwareDataSource) Schema(_ context.Context, _ datasource.Schem
 							Optional: true,
 						},
 						// TODO: Waiting on Corellium to fix this int32 issue. Data is mostly within int64 range. But GetSize() is  a int32 function.
-						// "size": schema.Int64Attribute{
-						// 	Optional: true,
-						// },
+						"size": schema.Int64Attribute{
+							Optional: true,
+						},
 						"unique_id": schema.StringAttribute{
 							Optional: true,
 						},
@@ -121,8 +129,13 @@ func (d *V1ModelSoftwareDataSource) Schema(_ context.Context, _ datasource.Schem
 						"version": schema.StringAttribute{
 							Optional: true,
 						},
-						// TODO Waiting for updated bindings from David
-						// Metadata
+						// "metadata": schema.SingleNestedAttribute{
+						// 	Description: "Project quotas",
+						// 	Optional:    true,
+						// 	Attributes:  map[string]schema.Attribute{
+						// 		// TODO Waiting for updated bindings from David
+						// 	},
+						// },
 					},
 				},
 			},
@@ -141,14 +154,17 @@ func (d *V1ModelSoftwareDataSource) Read(ctx context.Context, req datasource.Rea
 	}
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	software, _, err := d.client.ModelsApi.V1GetModelSoftware(auth, state.Model.ValueString()).Execute()
-	if err != nil && software != nil {
-		resp.Diagnostics.AddError(
-			"Error getting model software for model: "+state.Model.ValueString()+" Build ID: "+software[0].GetBuildid(),
-			err.Error(),
-		)
-		return
-	} else if err != nil && software == nil {
+	// software, _, err := d.client.ModelsApi.V1GetModelSoftware(auth, state.Model.ValueString()).Execute()
+	// Replace apiUrl with the actual API URL. Workaround for endpoint.
+	customSoftware, err := V1GetModelSoftwareManual(auth, "https://moda.enterprise.corellium.com/api", state.Model.ValueString())
+	// if err != nil && software != nil {
+	// 	resp.Diagnostics.AddError(
+	// 		"Error getting model software for model: "+state.Model.ValueString()+" Build ID: "+software[0].GetBuildid(),
+	// 		err.Error(),
+	// 	)
+	// 	return
+	// } else
+	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to fetch software for model: "+state.Model.ValueString(),
 			err.Error(),
@@ -157,27 +173,41 @@ func (d *V1ModelSoftwareDataSource) Read(ctx context.Context, req datasource.Rea
 	}
 
 	// Map response body to model
-	for _, s := range software {
+	for _, s := range customSoftware {
+		// metadata := make([]Metadata, len(s.Metadata))
+		// for i, md := range s.Metadata {
+		// 	metadata[i] = V1Metadata{}
+		// }
 		softwareState := V1SoftwareModel{
-			API_Version:    types.StringValue(s.GetAPIVersion()),
-			Android_Flavor: types.StringValue(s.GetAndroidFlavor()),
-			Build_Id:       types.StringValue(s.GetBuildid()),
-			Filename:       types.StringValue(s.GetFilename()),
-			Md5_Sum:        types.StringValue(s.GetMd5sum()),
-			Orig_Url:       types.StringValue(s.GetOrigUrl()),
-			Release_Date:   types.StringValue(s.GetReleasedate().String()),
-			Sha1_Sum:       types.StringValue(s.GetSha1sum()),
-			Sha256_Sum:     types.StringValue(s.GetSha256sum()),
-			// TODO: Waiting on Corellium to fix this int32 issue. Data is mostly within int64 range. But GetSize() is  a int32 function.
-			// Size:           types.Int64Value(int64(s.GetSize())),
-			Unique_Id:   types.StringValue(s.GetUniqueId()),
-			Upload_Date: types.StringValue(s.GetUploaddate().String()),
-			URL:         types.StringValue(s.GetUrl()),
-			Version:     types.StringValue(s.GetVersion()),
-			// TODO Waiting for updated bindings from David
-			// Metadata
+			API_Version:    types.StringValue(s.APIVersion),
+			Android_Flavor: types.StringValue(s.AndroidFlavor),
+			Build_Id:       types.StringValue(s.BuildID),
+			Filename:       types.StringValue(s.Filename),
+			Md5_Sum:        types.StringValue(s.Md5Sum),
+			Orig_Url:       types.StringValue(s.OrigURL),
+			Release_Date:   types.StringValue(s.ReleaseDate),
+			Sha1_Sum:       types.StringValue(s.Sha1Sum),
+			Sha256_Sum:     types.StringValue(s.Sha256Sum),
+			Size:           types.Int64Value(s.Size),
+			Unique_Id:      types.StringValue(s.UniqueId),
+			Upload_Date:    types.StringValue(s.Uploaddate),
+			URL:            types.StringValue(s.URL),
+			Version:        types.StringValue(s.Version),
+			// Metadata:       types.StringValue(s.Metadata),
+
+		}
+		// Intentional placeholder ID
+		// As stated in the docs, The testing framework requires an id attribute to be present in every data source and resource. In order to run tests on data sources and resources that do not have their own ID, you must implement an ID field with a placeholder value.
+		id, err := uuid.GenerateUUID()
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error generating UUID",
+				"An unexpected error was encountered trying to generate the ID:\n\n"+err.Error(),
+			)
+			return
 		}
 
+		state.ID = types.StringValue(id)
 		state.Model_Software = append(state.Model_Software, softwareState)
 	}
 
@@ -196,4 +226,62 @@ func (d *V1ModelSoftwareDataSource) Configure(_ context.Context, req datasource.
 	}
 
 	d.client = req.ProviderData.(*corellium.APIClient)
+}
+
+type CustomFirmware struct {
+	APIVersion    string `json:"api_version"`
+	AndroidFlavor string `json:"android_flavor"`
+	BuildID       string `json:"buildid"`
+	Filename      string `json:"filename"`
+	ID            string `json:"id"`
+	Md5Sum        string `json:"md5sum"`
+	OrigURL       string `json:"orig_url"`
+	ReleaseDate   string `json:"releasedate"`
+	Sha1Sum       string `json:"sha1sum"`
+	Sha256Sum     string `json:"sha256sum"`
+	Size          int64  `json:"size"`
+	UniqueId      string `json:"uniqueid"`
+	Uploaddate    string `json:"uploaddate"`
+	URL           string `json:"url"`
+	Version       string `json:"version"`
+	// Metadata      []CustomMetadata `json:"metadata"`
+}
+
+// type CustomMetadata struct {
+// 	// TODO Waiting for updated bindings from David
+// }
+
+// Workaround for Corellium ModelsAPI. This API is not currently working as expected. (returning values such as Size that are larger than Int32 can handle)
+func V1GetModelSoftwareManual(ctx context.Context, url string, model string) ([]CustomFirmware, error) {
+	client := &http.Client{}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url+"/v1/models/"+model+"/software", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get access token from context and add it to the request header
+	accessToken, ok := ctx.Value(corellium.ContextAccessToken).(string)
+	if !ok {
+		return nil, errors.New("access token not found in context")
+	}
+	req.Header.Add("Authorization", "Bearer "+accessToken)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error fetching firmware data: %s", resp.Status)
+	}
+
+	var firmwares []CustomFirmware
+	err = json.NewDecoder(resp.Body).Decode(&firmwares)
+	if err != nil {
+		return nil, err
+	}
+
+	return firmwares, nil
 }

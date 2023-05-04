@@ -6,6 +6,8 @@ on:
     branches:
       - 'staging'
       - 'main'
+  schedule:
+      - cron: '0 12 * * *' # This will run the workflow every day at 00:00 UTC
 
 jobs:
   build:
@@ -21,27 +23,10 @@ jobs:
           imageName: ghcr.io/aimoda/terraform-provider-corellium-devcontainer
           cacheFrom: ghcr.io/aimoda/terraform-provider-corellium-devcontainer
           push: never
-          # refFilterForPush: refs/heads/main
-          # eventFilterForPush: push
-        #   # Change this to be your CI task/script
-        #   runCmd: yarn test
-
-# jobs:
-#   devcontainer-build:
-#     runs-on: ubuntu-latest
-
-#     steps:
-#     - name: Checkout repository
-#       uses: actions/checkout@v3
-
-#     - name: Setup Node.js
-#       uses: actions/setup-node@v3
-#       with:
-#         node-version: 18
-#         cache: 'npm'
-
-#     - name: Install Dev Container CLI
-#       run: npm install -g @microsoft/dev-container-cli
-
-#     - name: Build Dev Container
-#       run: devcontainer build
+          runCmd: |
+            export CORELLIUM_API_TOKEN=${{ secrets.CORELLIUM_API_TOKEN }}
+            go get
+            go mod tidy
+            make install
+            make test
+            make testacc

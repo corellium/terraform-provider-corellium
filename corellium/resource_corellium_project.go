@@ -44,14 +44,16 @@ type V1ProjectQuotasModel struct {
 	// Core is the project cores quota.
 	Cores types.Number `tfsdk:"cores"`
 	// Instances is the project instances quota.
+	// Instances is computed from cores. Instances are equal to cores * 2.5
 	Instances types.Number `tfsdk:"instances"`
 	// Ram is the project RAM quota.
+	// Ram is computed from cores. Ram is equal to cores * 6144
 	Ram types.Number `tfsdk:"ram"`
 }
 
 // V1ProjectModel maps the resource schema data.
 // https://github.com/aimoda/go-corellium-api-client/blob/main/docs/Project.md
-type V1ProjectModel struct {
+type V1ProjectModel struct { // TODO: add quotas_used model to the schema.
 	// Id is the project ID.
 	// The project ID is a uuid, universally unique identifier.
 	Id types.String `tfsdk:"id"`
@@ -107,7 +109,7 @@ func (d *CorelliumV1ProjectResource) Schema(_ context.Context, _ resource.Schema
 			},
 			"quotas": schema.SingleNestedAttribute{
 				Description: "Project quotas",
-				Optional:    true,
+				Required:    true,
 				Attributes: map[string]schema.Attribute{
 					"name": schema.StringAttribute{
 						Description: "Project quota name",
@@ -119,11 +121,11 @@ func (d *CorelliumV1ProjectResource) Schema(_ context.Context, _ resource.Schema
 					},
 					"instances": schema.NumberAttribute{
 						Description: "Project quota instances",
-						Required:    true,
+						Computed:    true,
 					},
 					"ram": schema.NumberAttribute{
 						Description: "Project quota ram",
-						Required:    true,
+						Computed:    true,
 					},
 				},
 			},
@@ -133,7 +135,7 @@ func (d *CorelliumV1ProjectResource) Schema(_ context.Context, _ resource.Schema
 			},
 			"updated_at": schema.StringAttribute{
 				Description: "Project updated at",
-				Optional:    true,
+				Optional:    true, // TODO: Check if the `Optional` flag is required.
 				Computed:    true,
 			},
 		},
@@ -158,23 +160,17 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 	p := corellium.NewProjectWithDefaults()
 	p.SetName(plan.Name.ValueString())
 
-	if plan.Settings != nil {
-		s := corellium.NewProjectSettingsWithDefaults()
-		s.SetVersion(BigFloatToFloat32(plan.Settings.Version.ValueBigFloat()))
-		s.SetInternetAccess(plan.Settings.InternetAccess.ValueBool())
-		s.SetDhcp(plan.Settings.Dhcp.ValueBool())
+	s := corellium.NewProjectSettingsWithDefaults()
+	s.SetVersion(BigFloatToFloat32(plan.Settings.Version.ValueBigFloat()))
+	s.SetInternetAccess(plan.Settings.InternetAccess.ValueBool())
+	s.SetDhcp(plan.Settings.Dhcp.ValueBool())
 
-		p.SetSettings(*s)
-	}
+	p.SetSettings(*s)
 
-	if plan.Quotas != nil {
-		q := corellium.NewProjectQuotaWithDefaults()
-		q.SetCores(BigFloatToFloat32(plan.Quotas.Cores.ValueBigFloat()))
-		q.SetInstances(BigFloatToFloat32(plan.Quotas.Instances.ValueBigFloat()))
-		q.SetRam(BigFloatToFloat32(plan.Quotas.Ram.ValueBigFloat()))
+	q := corellium.NewProjectQuotaWithDefaults()
+	q.SetCores(BigFloatToFloat32(plan.Quotas.Cores.ValueBigFloat()))
 
-		p.SetQuotas(*q)
-	}
+	p.SetQuotas(*q)
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	created, r, err := d.client.ProjectsApi.V1CreateProject(auth).Project(*p).Execute()
@@ -275,9 +271,6 @@ func (d *CorelliumV1ProjectResource) Read(ctx context.Context, req resource.Read
 	state.Quotas.Instances = types.NumberValue(big.NewFloat(float64(project.Quotas.GetInstances())))
 	state.Quotas.Ram = types.NumberValue(big.NewFloat(float64(project.Quotas.GetRam())))
 
-	state.CreatedAt = types.StringValue(time.Now().Format(time.RFC3339))
-	state.UpdatedAt = types.StringValue(time.Now().Format(time.RFC3339))
-
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -312,23 +305,17 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 	p := corellium.NewProject(state.Id.ValueString())
 	p.SetName(plan.Name.ValueString())
 
-	if plan.Settings != nil {
-		s := corellium.NewProjectSettings()
-		s.SetVersion(BigFloatToFloat32(plan.Settings.Version.ValueBigFloat()))
-		s.SetInternetAccess(plan.Settings.InternetAccess.ValueBool())
-		s.SetDhcp(plan.Settings.Dhcp.ValueBool())
+	s := corellium.NewProjectSettings()
+	s.SetVersion(BigFloatToFloat32(plan.Settings.Version.ValueBigFloat()))
+	s.SetInternetAccess(plan.Settings.InternetAccess.ValueBool())
+	s.SetDhcp(plan.Settings.Dhcp.ValueBool())
 
-		p.SetSettings(*s)
-	}
+	p.SetSettings(*s)
 
-	if plan.Quotas != nil {
-		q := corellium.NewProjectQuota()
-		q.SetCores(BigFloatToFloat32(plan.Quotas.Cores.ValueBigFloat()))
-		q.SetInstances(BigFloatToFloat32(plan.Quotas.Instances.ValueBigFloat()))
-		q.SetRam(BigFloatToFloat32(plan.Quotas.Ram.ValueBigFloat()))
+	q := corellium.NewProjectQuota()
+	q.SetCores(BigFloatToFloat32(plan.Quotas.Cores.ValueBigFloat()))
 
-		p.SetQuotas(*q)
-	}
+	p.SetQuotas(*q)
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	project, r, err := d.client.ProjectsApi.V1UpdateProject(auth, state.Id.ValueString()).Project(*p).Execute()

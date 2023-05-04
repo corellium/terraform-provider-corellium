@@ -8,7 +8,7 @@ import (
 )
 
 func TestAccCorelliumV1ProjectResource(t *testing.T) {
-	resourceConfig := func(name, version, internet_access, dhcp, cores, instances, ram string) string {
+	resourceConfig := func(name, version, internet_access, dhcp, cores string) string {
 		return fmt.Sprintf(
 			`
 		resource "corellium_v1project" "test" {
@@ -20,11 +20,9 @@ func TestAccCorelliumV1ProjectResource(t *testing.T) {
 			}
 			quotas = {
 				cores = %s
-				instances = %s
-				ram = %s 
 			}
 		}
-		`, name, version, internet_access, dhcp, cores, instances, ram,
+		`, name, version, internet_access, dhcp, cores,
 		)
 	}
 
@@ -32,7 +30,7 @@ func TestAccCorelliumV1ProjectResource(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig + resourceConfig("test", "1", "false", "false", "1", "2.5", "6144"),
+				Config: providerConfig + resourceConfig("test", "1", "false", "false", "1"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "1"),
@@ -44,15 +42,15 @@ func TestAccCorelliumV1ProjectResource(t *testing.T) {
 				),
 			},
 			{
-				Config: providerConfig + resourceConfig("test2", "2", "true", "true", "1", "2.5", "6144"),
+				Config: providerConfig + resourceConfig("test2", "2", "true", "true", "2"),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test2"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "2"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.internet_access", "true"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.dhcp", "true"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.cores", "1"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "2.5"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "6144"),
+					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.cores", "2"),
+					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "5"),
+					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "12288"),
 				),
 			},
 		},

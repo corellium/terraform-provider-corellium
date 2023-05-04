@@ -91,7 +91,6 @@ func (d *CorelliumV1TeamResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	t := corellium.NewCreateTeam(plan.Label.ValueString())
-
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	team, r, err := d.client.TeamsApi.V1TeamCreate(auth).CreateTeam(*t).Execute()
 	if err != nil {
@@ -111,9 +110,33 @@ func (d *CorelliumV1TeamResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	if len(plan.Users) > 0 {
+	if plan.Users != nil && len(plan.Users) > 0 {
 		for _, user := range plan.Users {
 			r, err := d.client.TeamsApi.V1AddUserToTeam(auth, team.GetId(), user.Id.ValueString()).Execute()
+
+			// NOTICE: When a user cannot be add for some reason, we should delete the team to avoid orphaned teams.
+			// A orphaned team is a team that should have users but it does not because it's not possible to add a user
+			// to it. for some reason.
+			// revert is a function that deletes the team.
+			revert := func() {
+				r, err := d.client.TeamsApi.V1TeamDelete(auth, team.GetId()).Execute()
+				if err != nil {
+					b, err := io.ReadAll(r.Body)
+					if err != nil {
+						resp.Diagnostics.AddError(
+							"Error deleting team",
+							"Coudn't read the response body: "+err.Error(),
+						)
+						return
+					}
+
+					resp.Diagnostics.AddError(
+						"Unable to delete team",
+						"An unexpected error was encountered trying to delete the team:\n\n"+string(b))
+					return
+				}
+			}
+
 			if err != nil {
 				b, err := io.ReadAll(r.Body)
 				if err != nil {
@@ -121,6 +144,9 @@ func (d *CorelliumV1TeamResource) Create(ctx context.Context, req resource.Creat
 						"Error adding user to team",
 						"Coudn't read the response body: "+err.Error(),
 					)
+
+					revert()
+
 					return
 				}
 
@@ -128,6 +154,9 @@ func (d *CorelliumV1TeamResource) Create(ctx context.Context, req resource.Creat
 					"Error adding user to team",
 					"An unexpected error was encountered trying to add user to team:\n\n"+string(b),
 				)
+
+				revert()
+
 				return
 			}
 		}
@@ -177,6 +206,7 @@ func (d *CorelliumV1TeamResource) Read(ctx context.Context, req resource.ReadReq
 			state.Id = types.StringValue(team.Id)
 			state.Label = types.StringValue(team.Label)
 			state.Users = make([]V1TeamUserModel, len(team.Users))
+			// TODO: add the user model instead of the only ID.
 			for i, user := range team.Users {
 				state.Users[i].Id = types.StringValue(user.Id)
 			}
@@ -233,38 +263,10 @@ func (d *CorelliumV1TeamResource) Update(ctx context.Context, req resource.Updat
 		}
 	}
 
-	if plan.Users == nil {
-		for i, user := range state.Users {
-			r, err := d.client.TeamsApi.V1RemoveUserFromTeam(auth, state.Id.ValueString(), user.Id.ValueString()).Execute()
-			if err != nil {
-				b, err := io.ReadAll(r.Body)
-				if err != nil {
-					resp.Diagnostics.AddError(
-						"Error removing user from team",
-						"Coudn't read the response body: "+err.Error(),
-					)
-					return
-				}
-
-				resp.Diagnostics.AddError(
-					"Error removing user from team",
-					"An unexpected error was encountered trying to remove user from team:\n\n"+string(b),
-				)
-				return
-			}
-
-			state.Users = append(state.Users[:i], state.Users[i+1:]...)
-		}
-
-		state.Users = nil
-	}
-
-	// NOTICE: The API doesn't support updating the users of a team, so we need to remove the users that are not in the plan
-	// and add the users that are in the plan but not in the state.
-
 	// NOTICE: It is probably exist a better way to do this without two loops, but It works for now.
 
-	// When the exist in state, but not in plan, remove the user from the team.
+	// NOTICE: The API doesn't support updating the users of a team, at once, so we need to manage it manually.
+	// When the user exists in the state, but not in the plan, we need to remove it.
 	if state.Users != nil {
 		for i, user := range state.Users {
 			var found bool
@@ -294,12 +296,30 @@ func (d *CorelliumV1TeamResource) Update(ctx context.Context, req resource.Updat
 					return
 				}
 
-				state.Users = append(state.Users[:i], state.Users[i+1:]...)
+				// This snippet removes a user from the state on each iteration.
+				// It is because the API doesn't support removing multiple users at once.
+				if len(state.Users) > 1 {
+					if i < len(state.Users)-1 {
+						// Removes the user from the state by copying the slice without the user.
+						state.Users = append(state.Users[:i], state.Users[i+1:]...)
+					} else {
+						// However, if the user is the last one, we can just remove it from the slice.
+						state.Users = state.Users[:i]
+					}
+				} else {
+					// If the users attribute is empty, we need to set the state to empty too.
+					state.Users = []V1TeamUserModel{}
+
+					// However, when the plan has users atributes set to nil, we need to set the state to nil too.
+					if plan.Users == nil {
+						state.Users = nil
+					}
+				}
 			}
 		}
 	}
 
-	// When the exist in plan, but not in state, add the user to the team.
+	// When the user exists in the plan, but not in the state, we need to add it.
 	if plan.Users != nil {
 		for _, user := range plan.Users {
 			var found bool

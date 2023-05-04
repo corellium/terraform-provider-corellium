@@ -5,6 +5,7 @@ import (
 	"terraform-provider-corellium/corellium/pkg/api"
 
 	"github.com/aimoda/go-corellium-api-client"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -155,7 +156,16 @@ func (d *V1SupportedModelsDataSource) Read(ctx context.Context, req datasource.R
 
 	// Intentional placeholder ID
 	// As stated in the docs, The testing framework requires an id attribute to be present in every data source and resource. In order to run tests on data sources and resources that do not have their own ID, you must implement an ID field with a placeholder value.
-	state.ID = types.StringValue("placeholder")
+	id, err := uuid.GenerateUUID()
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error generating UUID",
+			"An unexpected error was encountered trying to generate the ID:\n\n"+err.Error(),
+		)
+		return
+	}
+
+	state.ID = types.StringValue(id)
 
 	// Set state
 	diags := resp.State.Set(ctx, &state)
