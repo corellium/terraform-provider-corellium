@@ -90,8 +90,36 @@ func (d *CorelliumV1TeamResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	t := corellium.NewCreateTeam(plan.Label.ValueString())
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
+	teams, r, err := d.client.TeamsApi.V1Teams(auth).Execute()
+	if err != nil {
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error listing teams",
+				"Coudn't read the response body: "+err.Error(),
+			)
+			return
+		}
+
+		resp.Diagnostics.AddError(
+			"Error listing teams",
+			"An unexpected error was encountered trying to list the teams:\n\n"+string(b),
+		)
+		return
+	}
+
+	for _, team := range teams {
+		if team.Label == plan.Label.ValueString() {
+			resp.Diagnostics.AddError(
+				"Error creating team",
+				"A team with the label "+plan.Label.ValueString()+" already exists",
+			)
+			return
+		}
+	}
+
+	t := corellium.NewCreateTeam(plan.Label.ValueString())
 	team, r, err := d.client.TeamsApi.V1TeamCreate(auth).CreateTeam(*t).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
