@@ -8,6 +8,9 @@ on:
       - 'main'
   schedule:
       - cron: '0 12 * * *' # This will run the workflow every day at 00:00 UTC
+concurrency:
+  group: devcontainer-build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
