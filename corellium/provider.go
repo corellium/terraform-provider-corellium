@@ -145,5 +145,6 @@ func (p *corelliumProvider) Resources(_ context.Context) []func() resource.Resou
 		NewCorelliumV1UserResource,
 		NewCorelliumV1SnapshotResource,
 		NewCorelliumV1InstanceResource,
+		NewCorelliumV1WebPlayerResource,
 	}
 }
