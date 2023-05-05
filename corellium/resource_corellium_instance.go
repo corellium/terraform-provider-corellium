@@ -2,11 +2,8 @@ package corellium
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"time"
-
-	"terraform-provider-corellium/corellium/pkg/api"
 
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -15,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
+	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -138,8 +136,8 @@ type V1InstanceModel struct {
 	ServiceIP   types.String                `tfsdk:"service_ip"`
 	WifiIP      types.String                `tfsdk:"wifi_ip"`
 	SecondaryIP types.String                `tfsdk:"secondary_ip"`
-	Services    *V1InstanceServicesModel    `tfsdk:"services"`
-	Panicked    types.Bool                  `tfsdk:"panicked"`
+	// Services    *V1InstanceServicesModel    `tfsdk:"services"` // TODO: find the right type for this.
+	Panicked types.Bool `tfsdk:"panicked"`
 	// Created is the time the instance was created.
 	Created   types.String `tfsdk:"created"`
 	Model     types.String `tfsdk:"model"`
@@ -278,7 +276,7 @@ func (d *CorelliumV1InstanceResource) Schema(_ context.Context, _ resource.Schem
 				Description: "Instance secondary ip",
 				Computed:    true,
 			},
-			"services": schema.SingleNestedAttribute{
+			/*"services": schema.SingleNestedAttribute{ // TODO: find the right type for this.
 				Description: "Instance services",
 				Computed:    true,
 				Attributes: map[string]schema.Attribute{
@@ -287,17 +285,15 @@ func (d *CorelliumV1InstanceResource) Schema(_ context.Context, _ resource.Schem
 						Computed:    true,
 						Attributes: map[string]schema.Attribute{
 							"proxy": schema.MapAttribute{
-								ElementType: types.StringType,
-								Computed:    true,
+								Computed: true,
 							},
 							"listeners": schema.MapAttribute{
-								ElementType: types.StringType,
-								Computed:    true,
+								Computed: true,
 							},
 						},
 					},
 				},
-			},
+			},*/
 			"panicked": schema.BoolAttribute{
 				Description: "Instance panicked",
 				Computed:    true,
@@ -536,9 +532,10 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 		AdditionalTags:  additionalTags,
 	}
 
-	plan.ServiceIP = types.StringValue(instance.GetServiceIp())
+	/*plan.ServiceIP = types.StringValue(instance.GetServiceIp()) // TODO: find the right type for this.
 	plan.WifiIP = types.StringValue(instance.GetWifiIp())
 	plan.SecondaryIP = types.StringValue(instance.GetSecondaryIp())
+
 
 	proxy, diags := types.MapValueFrom(ctx, types.StringType, instance.Services.GetVpn().Proxy)
 	resp.Diagnostics.Append(diags...)
@@ -546,22 +543,18 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-	fmt.Println(proxy)
-
 	listeners, diags := types.MapValueFrom(ctx, types.StringType, instance.Services.GetVpn().Listeners)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	fmt.Println(listeners)
-
 	plan.Services = &V1InstanceServicesModel{
 		VPN: &V1InstanceVPNModel{
 			Proxy:     proxy,
 			Listeners: listeners,
 		},
-	}
+	}*/
 
 	plan.Panicked = types.BoolValue(instance.GetPanicked())
 	plan.Created = types.StringValue(instance.GetCreated().UTC().String())
@@ -665,7 +658,7 @@ func (d *CorelliumV1InstanceResource) Read(ctx context.Context, req resource.Rea
 	state.WifiIP = types.StringValue(instance.GetWifiIp())
 	state.SecondaryIP = types.StringValue(instance.GetSecondaryIp())
 
-	proxy, diags := types.MapValueFrom(ctx, types.StringType, instance.Services.GetVpn().Proxy)
+	/*proxy, diags := types.MapValueFrom(ctx, types.StringType, instance.Services.GetVpn().Proxy) // TODO: find the right type for this.
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -682,7 +675,7 @@ func (d *CorelliumV1InstanceResource) Read(ctx context.Context, req resource.Rea
 			Proxy:     proxy,
 			Listeners: listeners,
 		},
-	}
+	}*/
 
 	state.Panicked = types.BoolValue(instance.GetPanicked())
 	state.Created = types.StringValue(instance.GetCreated().UTC().String())
@@ -836,7 +829,7 @@ func (d *CorelliumV1InstanceResource) Update(ctx context.Context, req resource.U
 	state.WifiIP = types.StringValue(instance.GetWifiIp())
 	state.SecondaryIP = types.StringValue(instance.GetSecondaryIp())
 
-	proxy, diags := types.MapValueFrom(ctx, types.StringType, instance.Services.GetVpn().Proxy)
+	/*proxy, diags := types.MapValueFrom(ctx, types.StringType, instance.Services.GetVpn().Proxy) // TODO: find the right type for this.
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -853,7 +846,7 @@ func (d *CorelliumV1InstanceResource) Update(ctx context.Context, req resource.U
 			Proxy:     proxy,
 			Listeners: listeners,
 		},
-	}
+	}*/
 
 	state.Panicked = types.BoolValue(instance.GetPanicked())
 	state.Created = types.StringValue(instance.GetCreated().UTC().String())

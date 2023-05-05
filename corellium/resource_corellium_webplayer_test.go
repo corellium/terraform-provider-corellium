@@ -8,12 +8,37 @@ import (
 )
 
 func TestAccCorelliumV1WebPlayer(t *testing.T) {
-	resourceConfigCreateUser := func(project, instanceid string, expiresinseconds float32, apps, console, coretrace, devicecontrol, devicedelete, files, frida, images, messaging, netmon, network, portforwarding, profile, sensors, settings, snapshots, strace, system, connect bool) string {
+	projectConfig := `
+    resource "corellium_v1project" "test" {
+        name = "test"
+        settings = {
+            version = 1
+            internet_access = true
+            dhcp = false
+        }
+        quotas = {
+            cores = 2
+        }
+        users = []
+        teams = []
+    }
+    `
+
+	instanceConfig := `
+    resource "corellium_v1instance" "test" {
+        name = "test"
+        flavor = "iphone7plus"
+        project = corellium_v1project.test.id
+        os = "15.7.5"
+        wait_for_ready = false 
+    }
+    `
+	webplayerConfig := func(project, instanceid string, expiresinseconds float32, apps, console, coretrace, devicecontrol, devicedelete, files, frida, images, messaging, netmon, network, portforwarding, profile, sensors, settings, snapshots, strace, system, connect bool) string {
 		return fmt.Sprintf(
 			`
 			resource "corellium_v1webplayer" "test" {
-				project = "%s"
-				instanceid = "%s"
+				project = %s
+				instanceid = %s
 				expiresinseconds = %g
 				features = {
 				  apps = %t
@@ -46,10 +71,10 @@ func TestAccCorelliumV1WebPlayer(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig + resourceConfigCreateUser("3f054ee4-3732-40bf-ad95-f096f874db9f", "466b02f9-361d-40ef-a266-7dc6839b4522", 3600, true, true, true, true, false, true, false, false, true, true, true, false, true, true, true, true, true, true, true),
+				Config: providerConfig + projectConfig + instanceConfig + webplayerConfig("corellium_v1project.test.id", "corellium_v1instance.test.id", 3600, true, true, true, true, false, true, false, false, true, true, true, false, true, true, true, true, true, true, true),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1webplayer.test", "project", "3f054ee4-3732-40bf-ad95-f096f874db9f"),
-					resource.TestCheckResourceAttr("corellium_v1webplayer.test", "instanceid", "466b02f9-361d-40ef-a266-7dc6839b4522"),
+					// resource.TestCheckResourceAttr("corellium_v1webplayer.test", "project", "3f054ee4-3732-40bf-ad95-f096f874db9f"),
+					// resource.TestCheckResourceAttr("corellium_v1webplayer.test", "instanceid", "466b02f9-361d-40ef-a266-7dc6839b4522"),
 					resource.TestCheckResourceAttr("corellium_v1webplayer.test", "expiresinseconds", "3600"),
 					resource.TestCheckResourceAttr("corellium_v1webplayer.test", "features.apps", "true"),
 					resource.TestCheckResourceAttr("corellium_v1webplayer.test", "features.console", "true"),
