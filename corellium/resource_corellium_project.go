@@ -29,6 +29,28 @@ type CorelliumV1ProjectResource struct {
 	client *corellium.APIClient
 }
 
+type V1ProjectUserModel struct {
+	// Id is the user ID.
+	Id types.String `tfsdk:"id"`
+	// Name is the user name.
+	Name types.String `tfsdk:"name"`
+	// Label is the user label.
+	Label types.String `tfsdk:"label"`
+	// Email is the user email.
+	Email types.String `tfsdk:"email"`
+	// Role is the user role.
+	Role types.String `tfsdk:"role"`
+}
+
+type V1ProjectTeamModel struct {
+	// Id is the team ID.
+	Id types.String `tfsdk:"id"`
+	// Label is the team label.
+	Label types.String `tfsdk:"label"`
+	// Role is the team role.
+	Role types.String `tfsdk:"role"`
+}
+
 type V1ProjectSettingsModel struct {
 	// Version is the project version.
 	Version types.Number `tfsdk:"version"`
@@ -63,6 +85,10 @@ type V1ProjectModel struct { // TODO: add quotas_used model to the schema.
 	Settings *V1ProjectSettingsModel `tfsdk:"settings"`
 	// Quotas is the project quotas.
 	Quotas *V1ProjectQuotasModel `tfsdk:"quotas"`
+	// Users is the project users.
+	Users []V1ProjectUserModel `tfsdk:"users"`
+	// Teams is the project teams.
+	Teams []V1ProjectTeamModel `tfsdk:"teams"`
 	// CreatedAt is the project creation date.
 	CreatedAt types.String `tfsdk:"created_at"`
 	// UpdatedAt is the project last update date.
@@ -126,6 +152,54 @@ func (d *CorelliumV1ProjectResource) Schema(_ context.Context, _ resource.Schema
 					"ram": schema.NumberAttribute{
 						Description: "Project quota ram",
 						Computed:    true,
+					},
+				},
+			},
+			"users": schema.ListNestedAttribute{
+				Description: "Project users",
+				Required:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Project user id",
+							Required:    true,
+						},
+						"name": schema.StringAttribute{
+							Description: "Project user name",
+							Computed:    true,
+						},
+						"label": schema.StringAttribute{
+							Description: "Project user label",
+							Computed:    true,
+						},
+						"email": schema.StringAttribute{
+							Description: "Project user email",
+							Computed:    true,
+						},
+						"role": schema.StringAttribute{
+							Description: "Project user role",
+							Required:    true,
+						},
+					},
+				},
+			},
+			"teams": schema.ListNestedAttribute{
+				Description: "Project teams",
+				Required:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Project team id",
+							Required:    true,
+						},
+						"label": schema.StringAttribute{
+							Description: "Project team label",
+							Computed:    true,
+						},
+						"role": schema.StringAttribute{
+							Description: "Project team role",
+							Required:    true,
+						},
 					},
 				},
 			},
@@ -209,6 +283,101 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
+	if len(plan.Users) > 0 {
+		for i, user := range plan.Users {
+			teams, r, err := d.client.TeamsApi.V1Teams(auth).Execute()
+			if err != nil {
+				b, err := io.ReadAll(r.Body)
+				if err != nil {
+					resp.Diagnostics.AddError(
+						"Error get the teams",
+						"Coudn't read the response body: "+err.Error(),
+					)
+					return
+				}
+
+				resp.Diagnostics.AddError(
+					"Error to get the teams",
+					"An unexpected error was encountered trying to create the team:\n\n"+string(b),
+				)
+				return
+			}
+
+			// NOTICE: This is a workaround for the fact that the API doesn't support getting a single team by ID.
+			var found bool
+			for _, t := range teams {
+				if t.Id == "all-users" {
+					for _, u := range t.Users {
+						if u.Id == user.Id.ValueString() {
+							user.Id = types.StringValue(u.Id)
+							user.Name = types.StringValue(u.Name)
+							user.Label = types.StringValue(u.Label)
+							user.Email = types.StringValue(u.Email)
+
+							found = true
+							break
+						}
+					}
+
+					break
+				}
+			}
+
+			if !found {
+				resp.Diagnostics.AddError(
+					"Error get the users",
+					"User with ID "+user.Id.ValueString()+" not found",
+				)
+				return
+			}
+
+			plan.Users[i] = user
+		}
+	}
+
+	if len(plan.Teams) > 0 {
+		for i, team := range plan.Teams {
+			teams, r, err := d.client.TeamsApi.V1Teams(auth).Execute()
+			if err != nil {
+				b, err := io.ReadAll(r.Body)
+				if err != nil {
+					resp.Diagnostics.AddError(
+						"Error get the teams",
+						"Coudn't read the response body: "+err.Error(),
+					)
+					return
+				}
+
+				resp.Diagnostics.AddError(
+					"Error to get the teams",
+					"An unexpected error was encountered trying to create the team:\n\n"+string(b),
+				)
+				return
+			}
+
+			// NOTICE: This is a workaround for the fact that the API doesn't support getting a single team by ID.
+			var found bool
+			for _, t := range teams {
+				if t.Id == team.Id.ValueString() {
+					team.Id = types.StringValue(t.Id)
+					team.Label = types.StringValue(t.Label)
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				resp.Diagnostics.AddError(
+					"Error get the teams",
+					"Team with ID "+team.Id.ValueString()+" not found",
+				)
+				return
+			}
+
+			plan.Teams[i] = team
+		}
+	}
+
 	plan.Id = types.StringValue(project.GetId())
 	plan.Name = types.StringValue(project.GetName())
 
@@ -257,6 +426,100 @@ func (d *CorelliumV1ProjectResource) Read(ctx context.Context, req resource.Read
 			"Unable to read project",
 			"An unexpected error was encountered trying to read the image:\n\n"+string(b))
 		return
+	}
+
+	if state.Users != nil {
+		for i, user := range state.Users {
+			teams, r, err := d.client.TeamsApi.V1Teams(auth).Execute()
+			if err != nil {
+				b, err := io.ReadAll(r.Body)
+				if err != nil {
+					resp.Diagnostics.AddError(
+						"Error get the teams",
+						"Coudn't read the response body: "+err.Error(),
+					)
+					return
+				}
+
+				resp.Diagnostics.AddError(
+					"Error to get the teams",
+					"An unexpected error was encountered trying to create the team:\n\n"+string(b),
+				)
+				return
+			}
+
+			// NOTICE: This is a workaround for the fact that the API doesn't support getting a single team by ID.
+			var found bool
+			for _, t := range teams {
+				if t.Id == "all-users" {
+					for _, u := range t.Users {
+						if u.Id == user.Id.ValueString() {
+							user.Id = types.StringValue(u.Id)
+							user.Name = types.StringValue(u.Name)
+							user.Email = types.StringValue(u.Email)
+
+							found = true
+							break
+						}
+					}
+
+					break
+				}
+			}
+
+			if !found {
+				resp.Diagnostics.AddError(
+					"Error get the users",
+					"User with ID "+user.Id.ValueString()+" not found",
+				)
+				return
+			}
+
+			state.Users[i] = user
+		}
+	}
+
+	if state.Teams != nil {
+		for i, team := range state.Teams {
+			teams, r, err := d.client.TeamsApi.V1Teams(auth).Execute()
+			if err != nil {
+				b, err := io.ReadAll(r.Body)
+				if err != nil {
+					resp.Diagnostics.AddError(
+						"Error get the teams",
+						"Coudn't read the response body: "+err.Error(),
+					)
+					return
+				}
+
+				resp.Diagnostics.AddError(
+					"Error to get the teams",
+					"An unexpected error was encountered trying to create the team:\n\n"+string(b),
+				)
+				return
+			}
+
+			var found bool
+			// NOTICE: This is a workaround for the fact that the API doesn't support getting a single team by ID.
+			for _, t := range teams {
+				if t.Id == team.Id.ValueString() {
+					team.Id = types.StringValue(t.Id)
+					team.Label = types.StringValue(t.Label)
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				resp.Diagnostics.AddError(
+					"Error get the teams",
+					"Team with ID "+team.Id.ValueString()+" not found",
+				)
+				return
+			}
+
+			state.Teams[i] = team
+		}
 	}
 
 	state.Id = types.StringValue(project.GetId())
@@ -334,6 +597,240 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 			"An unexpected error was encountered trying to update the project:\n\n"+string(b),
 		)
 		return
+	}
+
+	if len(state.Users) > 0 {
+		for i, user := range state.Users {
+			var found bool
+			for _, u := range plan.Users {
+				if u.Id.Equal(user.Id) {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				r, err := d.client.RolesApi.V1RemoveUserRoleFromProject(auth, state.Id.ValueString(), user.Id.ValueString(), user.Role.ValueString()).Execute()
+				if err != nil {
+					b, err := io.ReadAll(r.Body)
+					if err != nil {
+						resp.Diagnostics.AddError(
+							"Error removing user from project",
+							"Coudn't read the response body: "+err.Error(),
+						)
+						return
+					}
+
+					resp.Diagnostics.AddError(
+						"Error removing user from project",
+						"An unexpected error was encountered trying to remove user from project:\n\n"+string(b),
+					)
+					return
+				}
+
+				// This snippet removes a user from the state on each iteration.
+				if len(state.Users) > 1 {
+					if i < len(state.Users)-1 {
+						// Removes the user from the state by copying the slice without the user.
+						state.Users = append(state.Users[:i], state.Users[i+1:]...)
+					} else {
+						// However, if the user is the last one, we can just remove it from the slice.
+						state.Users = state.Users[:i]
+					}
+				} else {
+					// If the users attribute is empty, we need to set the state to empty too.
+					state.Users = []V1ProjectUserModel{}
+
+					// However, when the plan has users atributes set to nil, we need to set the state to nil too.
+					if plan.Users == nil {
+						state.Users = nil
+					}
+				}
+			}
+		}
+	}
+
+	if len(plan.Users) > 0 {
+		for _, user := range plan.Users {
+			var found bool
+			for _, u := range state.Users {
+				if u.Id.Equal(user.Id) {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				teams, r, err := d.client.TeamsApi.V1Teams(auth).Execute()
+				if err != nil {
+					b, err := io.ReadAll(r.Body)
+					if err != nil {
+						resp.Diagnostics.AddError(
+							"Error get the teams",
+							"Coudn't read the response body: "+err.Error(),
+						)
+						return
+					}
+
+					resp.Diagnostics.AddError(
+						"Error to get the teams",
+						"An unexpected error was encountered trying to create the team:\n\n"+string(b),
+					)
+					return
+				}
+
+				// NOTICE: This is a workaround for the fact that the API doesn't support getting a single team by ID.
+				for _, t := range teams {
+					if t.Id == "all-users" {
+						for _, u := range t.Users {
+							if u.Id == user.Id.ValueString() {
+								user.Id = types.StringValue(u.Id)
+								user.Name = types.StringValue(u.Name)
+								user.Label = types.StringValue(u.Label)
+								user.Email = types.StringValue(u.Email)
+
+								break
+							}
+						}
+
+						break
+					}
+				}
+
+				r, err = d.client.RolesApi.V1AddUserRoleToProject(auth, state.Id.ValueString(), user.Id.ValueString(), user.Role.ValueString()).Execute()
+				if err != nil {
+					b, err := io.ReadAll(r.Body)
+					if err != nil {
+						resp.Diagnostics.AddError(
+							"Error adding user to project",
+							"Coudn't read the response body: "+err.Error(),
+						)
+						return
+					}
+
+					resp.Diagnostics.AddError(
+						"Error adding user to project",
+						"An unexpected error was encountered trying to add user to project:\n\n"+string(b),
+					)
+					return
+				}
+
+				state.Users = append(state.Users, user)
+			}
+		}
+	}
+
+	if len(state.Teams) > 0 {
+		for i, team := range state.Teams {
+			var found bool
+			for _, t := range plan.Teams {
+				if t.Id.Equal(team.Id) {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				r, err := d.client.RolesApi.V1RemoveTeamRoleFromProject(auth, state.Id.ValueString(), team.Id.ValueString(), team.Role.ValueString()).Execute()
+				if err != nil {
+					b, err := io.ReadAll(r.Body)
+					if err != nil {
+						resp.Diagnostics.AddError(
+							"Error removing team from project",
+							"Coudn't read the response body: "+err.Error(),
+						)
+						return
+					}
+
+					resp.Diagnostics.AddError(
+						"Error removing team from project",
+						"An unexpected error was encountered trying to remove team from project:\n\n"+string(b),
+					)
+					return
+				}
+
+				// This snippet removes a team from the state on each iteration.
+				if len(state.Teams) > 1 {
+					if i < len(state.Teams)-1 {
+						// Removes the team from the state by copying the slice without the team.
+						state.Teams = append(state.Teams[:i], state.Teams[i+1:]...)
+					} else {
+						// However, if the team is the last one, we can just remove it from the slice.
+						state.Teams = state.Teams[:i]
+					}
+				} else {
+					// If the teams attribute is empty, we need to set the state to empty too.
+					state.Teams = []V1ProjectTeamModel{}
+
+					// However, when the plan has teams atributes set to nil, we need to set the state to nil too.
+					if plan.Teams == nil {
+						state.Teams = nil
+					}
+				}
+			}
+		}
+	}
+
+	if len(plan.Teams) > 0 {
+		for _, team := range plan.Teams {
+			var found bool
+			for _, t := range state.Teams {
+				if t.Id.Equal(team.Id) {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				teams, r, err := d.client.TeamsApi.V1Teams(auth).Execute()
+				if err != nil {
+					b, err := io.ReadAll(r.Body)
+					if err != nil {
+						resp.Diagnostics.AddError(
+							"Error get the teams",
+							"Coudn't read the response body: "+err.Error(),
+						)
+						return
+					}
+
+					resp.Diagnostics.AddError(
+						"Error to get the teams",
+						"An unexpected error was encountered trying to create the team:\n\n"+string(b),
+					)
+					return
+				}
+
+				// NOTICE: This is a workaround for the fact that the API doesn't support getting a single team by ID.
+				for _, t := range teams {
+					if t.Id == team.Id.ValueString() {
+						team.Id = types.StringValue(t.Id)
+						team.Label = types.StringValue(t.Label)
+
+						break
+					}
+				}
+
+				r, err = d.client.RolesApi.V1AddTeamRoleToProject(auth, state.Id.ValueString(), team.Id.ValueString(), team.Role.ValueString()).Execute()
+				if err != nil {
+					b, err := io.ReadAll(r.Body)
+					if err != nil {
+						resp.Diagnostics.AddError(
+							"Error adding team to project",
+							"Coudn't read the response body: "+err.Error(),
+						)
+						return
+					}
+
+					resp.Diagnostics.AddError(
+						"Error adding team to project",
+						"An unexpected error was encountered trying to add team to project:\n\n"+string(b),
+					)
+					return
+				}
+
+				state.Teams = append(state.Teams, team)
+			}
+		}
 	}
 
 	state.Id = types.StringValue(project.GetId())
