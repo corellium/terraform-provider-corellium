@@ -14,3 +14,53 @@ The Corellium allows [Terraform](https://terraform.io) to manage [Corellium](htt
 
 - Examples can be found in the [examples](examples/) directory.
 - Documentation can be found in the [docs](docs/) directory. At the same directory, you can find `demo.tf` file which contains all a small usage example.
+
+## Requirements
+
+- [Terraform](https://www.terraform.io/downloads.html) 0.13.x or higher
+
+- [Go](https://golang.org/doc/install) 1.20.x (to build the provider plugin)
+
+## Usage
+
+This is a simple example of creating a project and an instance for a user.
+
+```terraform
+terraform {
+  required_providers {
+    corellium = {
+      source = "aimoda/corellium"
+      version = "0.1.0"
+    }
+  }
+}
+
+provider "corellium" {
+  token = ""
+}
+
+resource "corellium_v1project" "example" {
+  name = "example"
+  settings = {
+    version = 1
+    internet_access = true 
+    dhcp = true
+  }
+  quotas = {
+    cores = 2
+  }
+  users = [
+    {
+      id = "00000000-0000-0000-0000-000000000000"
+    },
+  ]
+  teams = []
+}
+
+resource "corellium_v1instance" "example" {
+  name = "student_instance"
+  flavor = "samsung-galaxy-s-duos"
+  project = corellium_v1project.example.id
+  os = "13.0.0"
+}
+```
