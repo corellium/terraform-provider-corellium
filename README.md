@@ -11,3 +11,6 @@
 ![build](https://github.com/aimoda/terraform-provider-corellium/actions/workflows/devcontainer-build.yml/badge.svg)
 
 The Corellium allows [Terraform](https://terraform.io) to manage [Corellium](https://www.corellium.com/) resources.
+
+- Examples can be found in the [examples](examples/) directory.
+- Documentation can be found in the [docs](docs/) directory. At the same directory, you can find `demo.tf` file which contains all a small usage example.

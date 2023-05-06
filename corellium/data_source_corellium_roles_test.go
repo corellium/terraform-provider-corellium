@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
+// TODO: remove these help functions inserting into the acc test.
 func testAccCorelliumV1RolesDataSourceConfig() string {
 	return fmt.Sprintf(
 		`
