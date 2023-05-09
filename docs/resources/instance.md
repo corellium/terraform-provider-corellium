@@ -18,6 +18,52 @@ resource "corellium_v1instance" "example" {
 - `name` (string) - The name of the instance.
 
 - `flavor` (string) - The flavor of the instance.
+	A flavor is a device model, what can be a Android or iOS device.
+
+	The following flavors are examples of supported flavors for Android:
+    - ranchu (for Generic Android devices)
+    - google-nexus-4
+    - google-nexus-5
+    - google-nexus-5x
+    - google-nexus-6
+    - google-nexus-6p
+    - google-nexus-9
+    - google-pixel
+    - google-pixel-2
+    - google-pixel-3
+    - htc-one-m8
+    - huawei-p8
+    - samsung-galaxy-s-duos
+
+	The following flavors are examples for iOS:
+    - iphone6
+    - iphone6plus
+    - ipodtouch6
+    - ipadmini4wifi
+    - iphone6s
+    - iphone6splus
+    - iphonese
+    - iphone7
+    - iphone7plus
+    - iphone8
+    - iphone8plus
+    - iphonex
+    - iphonexs
+    - iphonexsmax
+    - iphonexsmaxww
+    - iphonexr
+    - iphone11
+    - iphone11pro
+    - iphone11promax
+    - iphonese2
+    - iphone12m
+    - iphone12
+    - iphone12p
+    - iphone12pm
+    - iphone13
+    - iphone13m
+    - iphone13p
+    - iphone13pm
 
 - `project` (string) - The project ID of the instance.
 
@@ -77,7 +123,7 @@ resource "corellium_v1instance" "example" {
 
 - `fault` (string) - The fault of the instance.
 
-- `patches` (list of string) - The patches of the instance.
+- `patches` (list of string) - The patches of the instance. Possible to be "jailbroken", "nonjailbroken" or "corelliumd". "jailbroken" is the default value. "nonjailbroken" means that instance should not be jailbroken and "corelliumd", the instance should not be jailbroken, but should profile API agent.
 
 - `created_by` (object of `user`) - The user who created the instance.
 

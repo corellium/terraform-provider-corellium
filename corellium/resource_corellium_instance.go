@@ -111,7 +111,51 @@ type V1InstanceModel struct {
 	Name types.String `tfsdk:"name"`
 	Key  types.String `tfsdk:"key"`
 	// Flavor is the flavor of the instance.
-	// A flavor is a device name, such as "iphone7plus".
+	// A flavor is a device model, what can be a Android or iOS device.
+	// The following flavors are examples of supported flavors for Android:
+	//    - ranchu (for Generic Android devices)
+	//    - google-nexus-4
+	//    - google-nexus-5
+	//    - google-nexus-5x
+	//    - google-nexus-6
+	//    - google-nexus-6p
+	//    - google-nexus-9
+	//    - google-pixel
+	//    - google-pixel-2
+	//    - google-pixel-3
+	//    - htc-one-m8
+	//    - huawei-p8
+	//    - samsung-galaxy-s-duos 
+	//
+	// The following flavors are examples for iOS:
+	//    - iphone6
+	//    - iphone6plus
+	//    - ipodtouch6
+	//    - ipadmini4wifi
+	//    - iphone6s
+	//    - iphone6splus
+	//    - iphonese
+	//    - iphone7
+	//    - iphone7plus
+	//    - iphone8
+	//    - iphone8plus
+	//    - iphonex
+	//    - iphonexs
+	//    - iphonexsmax
+	//    - iphonexsmaxww
+	//    - iphonexr
+	//    - iphone11
+	//    - iphone11pro
+	//    - iphone11promax
+	//    - iphonese2
+	//    - iphone12m
+	//    - iphone12
+	//    - iphone12p
+	//    - iphone12pm
+	//    - iphone13
+	//    - iphone13m
+	//    - iphone13p
+	//    - iphone13pm
 	Flavor types.String `tfsdk:"flavor"`
 	Type   types.String `tfsdk:"type"`
 	// Project is the id of the project the instance belongs to.
@@ -142,13 +186,17 @@ type V1InstanceModel struct {
 	Created   types.String `tfsdk:"created"`
 	Model     types.String `tfsdk:"model"`
 	FWPackage types.String `tfsdk:"fwpackage"`
-	// OS is the version of the operating system running on the instance.
+	// OS is the version of the operating system running on the instance, e.g. 14.3 for iOS, or 11.0.0 for Android.
 	OS         types.String           `tfsdk:"os"`
 	Agent      *V1InstanceAgentModel  `tfsdk:"agent"`
 	Netmon     *V1InstanceNetmonModel `tfsdk:"netmon"`
 	ExposePort types.String           `tfsdk:"expose_port"`
 	Fault      types.Bool             `tfsdk:"fault"`
-	Patches    types.List             `tfsdk:"patches"`
+	// Patches is the list of patches applied to the instance.
+	//    - jailbroken The instance should be jailbroken (default).
+	//    - nonjailbroken The instance should not be jailbroken.
+	//    - corelliumd The instance should not be jailbroken but should profile API agent.
+	Patches types.List `tfsdk:"patches"`
 	// CreatedBy is the user who created the instance.
 	CreatedBy *V1InstanceCreatedByModel `tfsdk:"created_by"`
 	// WaitForReady is a boolean that indicates if the resource should wait for the instance to be ready.
@@ -185,7 +233,7 @@ func (d *CorelliumV1InstanceResource) Schema(_ context.Context, _ resource.Schem
 			},
 			"flavor": schema.StringAttribute{
 				Description: "Instance flavor",
-				Required:    true,
+				Required: true,
 			},
 			"type": schema.StringAttribute{
 				Description: "Instance type",
