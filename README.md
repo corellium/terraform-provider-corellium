@@ -15,6 +15,8 @@ The Corellium allows [Terraform](https://terraform.io) to manage [Corellium](htt
 - Examples can be found in the [examples](examples/) directory.
 - Documentation can be found in the [docs](docs/) directory. At the same directory, you can find `demo.tf` file which contains all a small usage example.
 
+_**Please note:** If you believe you have found a security issue in the Terraform Corellium Provider, please responsibly disclose it by contacting us at terraform-provider-corellium@security.email.ai.moda._
+
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) 0.13.x or higher
