@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/aimoda/go-corellium-api-client"
@@ -216,6 +217,15 @@ func (d *CorelliumV1ProjectResource) Schema(_ context.Context, _ resource.Schema
 	}
 }
 
+// locker is a helper struct to force the creation of each project sequentially.
+// This is required becuase Terraform Framework executes each create operation concurrently, what causes problems when
+// creating multiple projects at the same time.
+type locker struct {
+	mu *sync.Mutex
+}
+
+var l locker = locker{mu: &sync.Mutex{}}
+
 // Create creates the resource and sets the initial Terraform state.
 func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan V1ProjectModel
@@ -224,6 +234,32 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	projects, r, err := d.client.ProjectsApi.V1GetProjects(auth).Execute()
+	if err != nil {
+		_, err := io.ReadAll(r.Body)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error creating project",
+				"Coudn't read the response body from project name check: "+err.Error(),
+			)
+			return
+		}
+	}
+
+	for _, project := range projects {
+		if project.GetName() == plan.Name.ValueString() {
+			resp.Diagnostics.AddError(
+				"Error creating project",
+				"A project with the name "+plan.Name.ValueString()+" already exists",
+			)
+			return
+		}
 	}
 
 	BigFloatToFloat32 := func(bf *big.Float) float32 {
@@ -246,7 +282,6 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 
 	p.SetQuotas(*q)
 
-	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	created, r, err := d.client.ProjectsApi.V1CreateProject(auth).Project(*p).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)

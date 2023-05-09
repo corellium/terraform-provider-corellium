@@ -1,6 +1,7 @@
 package corellium
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -299,6 +300,47 @@ func TestAccCorelliumV1ProjectResource_add_teams_on_creation(t *testing.T) {
 					resource.TestCheckResourceAttr("corellium_v1project.test_create_with_teams", "teams.0.id", "d1c3d32d-b46e-4ba3-8f31-2069fc5e80bc"),
 					resource.TestCheckResourceAttr("corellium_v1project.test_create_with_teams", "teams.0.role", "admin"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccCorelliumV1ProjectResource_project_name_duplicated(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		IsUnitTest:               true,
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfig + `
+                resource "corellium_v1project" "test" {
+                    name = "test"
+                    settings = {
+                        version = 1
+                        internet_access = false
+                        dhcp = false
+                    }
+                    quotas = {
+                        cores = 1
+                    }
+                    users = []
+                    teams = []
+                }
+
+                resource "corellium_v1project" "test_duplicated" {
+                    name = "test"
+                    settings = {
+                        version = 1
+                        internet_access = false
+                        dhcp = false
+                    }
+                    quotas = {
+                        cores = 1
+                    }
+                    users = []
+                    teams = []
+                }
+                `,
+				ExpectError: regexp.MustCompile("A project with the name test already exists"),
 			},
 		},
 	})
