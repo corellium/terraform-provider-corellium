@@ -3,6 +3,7 @@ package corellium
 import (
 	"context"
 	"io"
+	"net/http"
 	"time"
 
 	"github.com/aimoda/go-corellium-api-client"
@@ -125,7 +126,7 @@ type V1InstanceModel struct {
 	//    - google-pixel-3
 	//    - htc-one-m8
 	//    - huawei-p8
-	//    - samsung-galaxy-s-duos 
+	//    - samsung-galaxy-s-duos
 	//
 	// The following flavors are examples for iOS:
 	//    - iphone6
@@ -233,7 +234,7 @@ func (d *CorelliumV1InstanceResource) Schema(_ context.Context, _ resource.Schem
 			},
 			"flavor": schema.StringAttribute{
 				Description: "Instance flavor",
-				Required: true,
+				Required:    true,
 			},
 			"type": schema.StringAttribute{
 				Description: "Instance type",
@@ -456,6 +457,14 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	created, r, err := d.client.InstancesApi.V1CreateInstance(auth).InstanceCreateOptions(*i).Execute()
 	if err != nil {
+		if r.StatusCode == http.StatusForbidden {
+			resp.Diagnostics.AddError(
+				"Error creating instance",
+				"You don't have permission to create instances in this project.",
+			)
+			return
+		}
+
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
 			resp.Diagnostics.AddError(

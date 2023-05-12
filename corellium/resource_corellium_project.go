@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"math/big"
+	"net/http"
 	"sync"
 	"time"
 
@@ -284,6 +285,14 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 
 	created, r, err := d.client.ProjectsApi.V1CreateProject(auth).Project(*p).Execute()
 	if err != nil {
+		if r.StatusCode == http.StatusForbidden {
+			resp.Diagnostics.AddError(
+				"Error creating project",
+				"You don't have permission to create a project.",
+			)
+			return
+		}
+
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
 			resp.Diagnostics.AddError(
