@@ -2,13 +2,13 @@ package corellium
 
 import (
 	"context"
-
-	"terraform-provider-corellium/corellium/pkg/api"
+	"net/http"
 
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -100,8 +100,16 @@ func (d *CorelliumV1UserResource) Create(ctx context.Context, req resource.Creat
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	// Create the user
 	// Just returns a map[string]interface{} with the user ID
-	createdUser, _, err := d.client.UsersApi.V1CreateUser(auth).Body(userMap).Execute()
+	createdUser, r, err := d.client.UsersApi.V1CreateUser(auth).Body(userMap).Execute()
 	if err != nil {
+		if r.StatusCode == http.StatusForbidden {
+			resp.Diagnostics.AddError(
+				"Unable to create the corellium user",
+				"You do not have permission to create a user",
+			)
+			return
+		}
+
 		resp.Diagnostics.AddError(
 			"Unable to create the corellium user",
 			err.Error(),
@@ -199,7 +207,7 @@ func (d *CorelliumV1UserResource) Update(ctx context.Context, req resource.Updat
 		"password":      update.Password.ValueString(),
 	}
 
-	//Update the user
+	// Update the user
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	// Takes the user uuID as a parameter and a map[string]interface{} as a body containing the user data to update
 	_, _, err := d.client.UsersApi.V1UpdateUser(auth, state.ID.ValueString()).Body(updatedUserMap).Execute()
@@ -237,7 +245,7 @@ func (d *CorelliumV1UserResource) Delete(ctx context.Context, req resource.Delet
 		return
 	}
 
-	//Delete the user
+	// Delete the user
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	// Takes the user uuID as a parameter
 	_, _, err := d.client.UsersApi.V1DeleteUser(auth, state.ID.ValueString()).Execute()

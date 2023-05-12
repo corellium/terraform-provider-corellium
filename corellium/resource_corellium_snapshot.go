@@ -3,6 +3,7 @@ package corellium
 import (
 	"context"
 	"io"
+	"net/http"
 
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -128,6 +129,14 @@ func (d *CorelliumV1SnapshotResource) Create(ctx context.Context, req resource.C
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	snapshot, r, err := d.client.SnapshotsApi.V1CreateSnapshot(auth, plan.Instance.ValueString()).SnapshotCreationOptions(*o).Execute()
 	if err != nil {
+		if r.StatusCode == http.StatusForbidden {
+			resp.Diagnostics.AddError(
+				"Error creating snapshot",
+				"You don't have permissions to create snapshots.",
+			)
+			return
+		}
+
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
 			resp.Diagnostics.AddError(

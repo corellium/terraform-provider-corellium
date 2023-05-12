@@ -3,6 +3,7 @@ package corellium
 import (
 	"context"
 	"io"
+	"net/http"
 
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -122,6 +123,14 @@ func (d *CorelliumV1TeamResource) Create(ctx context.Context, req resource.Creat
 	t := corellium.NewCreateTeam(plan.Label.ValueString())
 	team, r, err := d.client.TeamsApi.V1TeamCreate(auth).CreateTeam(*t).Execute()
 	if err != nil {
+		if r.StatusCode == http.StatusForbidden {
+			resp.Diagnostics.AddError(
+				"Error creating team",
+				"You don't have permissions to create a team",
+			)
+			return
+		}
+
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
 			resp.Diagnostics.AddError(

@@ -257,6 +257,13 @@ func (d *CorelliumV1WebPlayerResource) Create(ctx context.Context, req resource.
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
+            if r.StatusCode == http.StatusForbidden {
+                resp.Diagnostics.AddError(
+                    "Error creating a web player session",
+                    "You don't have permission to create a web player session",
+                )
+                return
+            }
 			resp.Diagnostics.AddError(
 				"Error creating a web player session",
 				"Coudn't read the response body: "+err.Error(),

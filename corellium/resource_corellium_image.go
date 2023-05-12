@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"math/big"
+	"net/http"
 	"os"
 
 	"github.com/aimoda/go-corellium-api-client"
@@ -144,6 +145,14 @@ func (d *CorelliumV1ImageResource) Create(ctx context.Context, req resource.Crea
 		Project(plan.Project.ValueString()).
 		Execute()
 	if err != nil {
+		if r.StatusCode == http.StatusForbidden {
+			resp.Diagnostics.AddError(
+				"Error creating image",
+				"You don't have permission to create an image in this project.",
+			)
+			return
+		}
+
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
 			resp.Diagnostics.AddError(
