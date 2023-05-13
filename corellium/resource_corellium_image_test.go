@@ -64,3 +64,31 @@ func TestAccCorelliumV1ImageResource(t *testing.T) {
 		},
 	})
 }
+
+func TestAccCorelliumV1ImageResource_non_enterprise(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfigNonEnterprise + `
+                data "corellium_v1projects" "test" {}
+
+                resource "corellium_v1image" "test" {
+                    name = "test"
+                    type = "backup"
+                    filename = "/tmp/image.txt"
+                    encapsulated = false
+                    project = data.corellium_v1projects.test.projects[0].id
+                }
+                `,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("corellium_v1image.test", "name", "test"),
+					resource.TestCheckResourceAttr("corellium_v1image.test", "type", "backup"),
+					resource.TestCheckResourceAttr("corellium_v1image.test", "filename", "/tmp/image.txt"),
+					resource.TestCheckResourceAttr("corellium_v1image.test", "encapsulated", "false"),
+					resource.TestCheckResourceAttrSet("corellium_v1image.test", "project"),
+				),
+			},
+		},
+	})
+}

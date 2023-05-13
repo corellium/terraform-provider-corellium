@@ -345,3 +345,29 @@ func TestAccCorelliumV1ProjectResource_project_name_duplicated(t *testing.T) {
 		},
 	})
 }
+
+func TestAccCorelliumV1ProjectResource_non_enterprise(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfigNonEnterprise + `
+                resource "corellium_v1project" "test" {
+                    name = "test"
+                    settings = {
+                        version = 1
+                        internet_access = false
+                        dhcp = false
+                    }
+                    quotas = {
+                        cores = 1
+                    }
+                    users = []
+                    teams = []
+                }
+                `,
+				ExpectError: regexp.MustCompile("You don't have permission to create a project."),
+			},
+		},
+	})
+}

@@ -2,6 +2,7 @@ package corellium
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -58,6 +59,26 @@ func TestAccCorelliumV1Users(t *testing.T) {
 					resource.TestCheckResourceAttr("corellium_v1user.test", "password", "jbnmczxui8943211@#$"),
 					resource.TestCheckNoResourceAttr("corellium_v1user.test", "ID"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccCorelliumV1Users_non_enterprise(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfigNonEnterprise + fmt.Sprintf(`
+                resource "corellium_v1user" "test" {
+                    label = "test"
+                    name = "test"
+                    email = "test@testing.email.ai.moda"
+                    password = "%s"
+                    administrator = false
+                }
+                `, generatePassword(32, 4, 4, 4)),
+				ExpectError: regexp.MustCompile("You do not have permission to create a user"),
 			},
 		},
 	})

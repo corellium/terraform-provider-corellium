@@ -2,6 +2,7 @@ package corellium
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -127,6 +128,23 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 					resource.TestCheckResourceAttr("corellium_v1team.test", "label", "test_without_users_again"),
 					resource.TestCheckResourceAttr("corellium_v1team.test", "users.#", "0"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccCorelliumV1TeamResource_non_enterprise(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfigNonEnterprise + `
+                resource "corellium_v1team" "test" {
+                    label = "test"
+                    users = []
+                }
+                `,
+				ExpectError: regexp.MustCompile("You don't have permissions to create a team"),
 			},
 		},
 	})
