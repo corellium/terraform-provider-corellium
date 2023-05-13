@@ -2,14 +2,14 @@ package corellium
 
 import (
 	"context"
-
-	"terraform-provider-corellium/corellium/pkg/api"
+	"net/http"
 
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -289,8 +289,15 @@ func (d *v1GetInstancesDataSource) Read(ctx context.Context, req datasource.Read
 	var state v1GetInstancesDataSourceModel
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	instances, _, err := d.client.InstancesApi.V1GetInstances(auth).Execute()
+	instances, r, err := d.client.InstancesApi.V1GetInstances(auth).Execute()
 	if err != nil {
+		if r.StatusCode == http.StatusForbidden {
+			resp.Diagnostics.AddError(
+				"Unable to Read Instances",
+				"You do not have permission to access instances",
+			)
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Unable to Read Instances",
 			err.Error(),

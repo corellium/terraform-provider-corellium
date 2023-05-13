@@ -3,6 +3,7 @@ package corellium
 import (
 	"context"
 	"io"
+	"net/http"
 
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/go-uuid"
@@ -118,6 +119,14 @@ func (d *V1RolesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	// auth is the context with the access token, what is required by the API client.
 	roles, r, err := d.client.RolesApi.V1Roles(auth).Execute()
 	if err != nil {
+		if r.StatusCode == http.StatusForbidden {
+			resp.Diagnostics.AddError(
+				"Error gettings roles",
+				"The user doesn't have permission to get the roles.",
+			)
+			return
+		}
+
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
 			resp.Diagnostics.AddError(

@@ -2,13 +2,14 @@ package corellium
 
 import (
 	"context"
-	"terraform-provider-corellium/corellium/pkg/api"
+	"net/http"
 
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -123,8 +124,15 @@ func (d *V1SupportedModelsDataSource) Read(ctx context.Context, req datasource.R
 	var state V1SupportedModelsDataSourceModel
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	models, _, err := d.client.ModelsApi.V1GetModels(auth).Execute()
+	models, r, err := d.client.ModelsApi.V1GetModels(auth).Execute()
 	if err != nil {
+		if r.StatusCode == http.StatusForbidden {
+			resp.Diagnostics.AddError(
+				"Error getting supported models",
+				"The user doesn't have permission to get supported models",
+			)
+			return
+		}
 		resp.Diagnostics.AddError(
 			"Unable to fetch Corellium Supported Models",
 			err.Error(),
@@ -144,7 +152,7 @@ func (d *V1SupportedModelsDataSource) Read(ctx context.Context, req datasource.R
 			CpId:        types.Int64Value(int64(model.GetCpid())),
 			BdId:        types.Int64Value(int64(model.GetBdid())),
 			Peripherals: types.BoolValue(model.GetPeripherals()),
-			//TODO: Waiting for updated bindings from David
+			// TODO: Waiting for updated bindings from David
 			// Quotas: Quotas{
 			// 	Cpus:  types.NumberValue(model),
 			// 	Cores: types.NumberValue(model.GetCores()),
