@@ -133,6 +133,7 @@ func (p *corelliumProvider) DataSources(_ context.Context) []func() datasource.D
 		NewCorelliumV1SupportedModelsDataSource,
 		NewCorelliumV1ModelSoftwareDataSource,
 		NewCorelliumV1RolesDataSource,
+		NewCorelliumV1ProjectsDataSource,
 	}
 }
 
