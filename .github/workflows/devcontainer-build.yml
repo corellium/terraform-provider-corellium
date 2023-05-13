@@ -29,7 +29,7 @@ jobs:
           push: never
           runCmd: |
             export CORELLIUM_API_TOKEN=${{ secrets.CORELLIUM_API_TOKEN }}
-            export CORELLIUM_API_HOST=${{ env.CORELLIUM_API_HOST }}
+            export CORELLIUM_API_HOST=${{ vars.CORELLIUM_API_HOST }}
             go get
             go mod tidy
             make install
