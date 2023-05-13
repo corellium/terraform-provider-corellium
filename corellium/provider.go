@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"terraform-provider-corellium/corellium/pkg/api"
-
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -14,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces
@@ -29,6 +28,14 @@ func New() provider.Provider {
 // corelliumProvider is the provider implementation.
 type corelliumProvider struct{}
 
+// hashicupsProviderModel maps provider schema data to a Go type.
+// The Terraform Plugin Framework uses Go struct types with 'tfsdk' struct field tags to map schema definitions into Go types with the actual data.
+// NOTE: The types within the struct must align with the types in the schema above.
+type corelliumProviderModel struct {
+	Token types.String `tfsdk:"token"`
+	Host  types.String `tfsdk:"host"`
+}
+
 // Metadata returns the provider type name.
 func (p *corelliumProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
 	resp.TypeName = "corellium"
@@ -39,18 +46,16 @@ func (p *corelliumProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"token": schema.StringAttribute{
-				Sensitive: true,
-				Required:  true,
+				Description: "The Corellium API token. This can also be set via the CORELLIUM_API_TOKEN environment variable.",
+				Sensitive:   true,
+				Required:    true,
+			},
+			"host": schema.StringAttribute{
+				Description: "The Corellium API host. This can also be set via the CORELLIUM_API_HOST environment variable.",
+				Optional:    true,
 			},
 		},
 	}
-}
-
-// hashicupsProviderModel maps provider schema data to a Go type.
-// The Terraform Plugin Framework uses Go struct types with 'tfsdk' struct field tags to map schema definitions into Go types with the actual data.
-// NOTE: The types within the struct must align with the types in the schema above.
-type corelliumProviderModel struct {
-	Token types.String `tfsdk:"token"`
 }
 
 // Configure prepares a corellium API client for data sources and resources.
@@ -95,18 +100,41 @@ func (p *corelliumProvider) Configure(ctx context.Context, req provider.Configur
 		)
 	}
 
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	api.SetAccessToken(token)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
+	// NOTICE: here it is an implementation of the override of the host value from the configuration or environment
+	// variable. When the host value is not set in the configuration, the default value is used. However, if the
+	// CORELLIUM_API_HOST environment variable is set, it will override the default value, but IT WILL NOT override
+	// the value set in the configuration. This is because the environment variable is not a Terraform configuration
+	// value, but a provider-specific value. This is a good example of how to handle provider-specific values that
+	// are not Terraform configuration values.
+
+	// host default value.
+	host := "app.corellium.com"
+
+	if h := os.Getenv("CORELLIUM_API_HOST"); h != "" {
+		resp.Diagnostics.AddWarning(
+			"Using CORELLIUM_API_HOST environment variable",
+			"The CORELLIUM_API_HOST environment variable is being used to override the host value set in the configuration.",
+		)
+
+		host = h
+	}
+
+	if !config.Host.IsNull() && !(config.Host.ValueString() == "") {
+		host = config.Host.ValueString()
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	configuration := corellium.NewConfiguration()
-	configuration.Host = "moda.enterprise.corellium.com"
+	configuration.Host = host
 
 	client := corellium.NewAPIClient(configuration)
 	r, err := client.StatusApi.V1Ready(ctx).Execute()
