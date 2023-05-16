@@ -10,7 +10,6 @@ import (
 func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		IsUnitTest:               true,
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
@@ -191,7 +190,6 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
 func TestAccCorelliumV1ProjectResource_add_users_on_creation(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		IsUnitTest:               true,
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
@@ -266,7 +264,6 @@ func TestAccCorelliumV1ProjectResource_add_users_on_creation(t *testing.T) {
 func TestAccCorelliumV1ProjectResource_add_teams_on_creation(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		IsUnitTest:               true,
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
@@ -308,7 +305,6 @@ func TestAccCorelliumV1ProjectResource_add_teams_on_creation(t *testing.T) {
 func TestAccCorelliumV1ProjectResource_project_name_duplicated(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		IsUnitTest:               true,
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
