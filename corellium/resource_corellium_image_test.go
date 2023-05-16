@@ -66,8 +66,23 @@ func TestAccCorelliumV1ImageResource(t *testing.T) {
 }
 
 func TestAccCorelliumV1ImageResource_non_enterprise(t *testing.T) {
+	preCheck := func() {
+		// It creates a file into the /tmp directory to be used as an image.
+		// This is a workaround to avoid having to upload a real image to the
+		// Corellium API to test the resource.
+		if _, err := os.Stat("/tmp/image.txt"); os.IsNotExist(err) {
+			f, err := os.Create("/tmp/image.txt")
+			if err != nil {
+				log.Println(err)
+			}
+
+			defer f.Close()
+		}
+	}
+
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		PreCheck:                 preCheck,
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfigNonEnterprise + `
