@@ -17,26 +17,26 @@ terraform {
   #
   # https://developer.hashicorp.com/terraform/language/settings#specifying-provider-requirements
   # https://developer.hashicorp.com/terraform/language/providers/requirements#requiring-providers
-    corellium = {
-      source = "github.com/aimoda/corellium"
-      # The global source address for the provider you intend to use, such as hashicorp/aws.
-      #
-      # https://developer.hashicorp.com/terraform/language/providers/requirements#source
-      version = "~> 1.0.0"
-      # A version constraint specifying which subset of available provider versions the module is compatible with.
-      #
-      # https://developer.hashicorp.com/terraform/language/providers/requirements#version
+  corellium = {
+    source = "github.com/aimoda/corellium"
+    # The global source address for the provider you intend to use, such as hashicorp/aws.
+    #
+    # https://developer.hashicorp.com/terraform/language/providers/requirements#source
+    version = "~> 1.0.0"
+    # A version constraint specifying which subset of available provider versions the module is compatible with.
+    #
+    # https://developer.hashicorp.com/terraform/language/providers/requirements#version
 
-      # Each provider plugin has its own set of available versions, allowing the functionality of the provider to evolve
-      # over time. Each provider dependency you declare should have a version constraint given in the version argument
-      # so Terraform can select a single version per provider that all modules are compatible with.
-      # The version argument is optional; if omitted, Terraform will accept any version of the provider as compatible.
-      # However, we strongly recommend specifying a version constraint for every provider your module depends on.
-      # To ensure Terraform always installs the same provider versions for a given configuration, you can use Terraform
-      # CLI to create a dependency lock file and commit it to version control along with your configuration. If a lock
-      # file is present, Terraform Cloud, CLI, and Enterprise will all obey it when installing providers.
-      #
-      # https://developer.hashicorp.com/terraform/language/providers/requirements#version-constraints
+    # Each provider plugin has its own set of available versions, allowing the functionality of the provider to evolve
+    # over time. Each provider dependency you declare should have a version constraint given in the version argument
+    # so Terraform can select a single version per provider that all modules are compatible with.
+    # The version argument is optional; if omitted, Terraform will accept any version of the provider as compatible.
+    # However, we strongly recommend specifying a version constraint for every provider your module depends on.
+    # To ensure Terraform always installs the same provider versions for a given configuration, you can use Terraform
+    # CLI to create a dependency lock file and commit it to version control along with your configuration. If a lock
+    # file is present, Terraform Cloud, CLI, and Enterprise will all obey it when installing providers.
+    #
+    # https://developer.hashicorp.com/terraform/language/providers/requirements#version-constraints
     }
   }
 }
@@ -65,10 +65,10 @@ locals {
 #
 # https://developer.hashicorp.com/terraform/language/values/locals
   users = toset([
-    "jeff@testing.email.ai.moda",
-    "jake@testing.email.ai.moda",
-    "john@testing.email.ai.moda",
-    "david@testing.email.ai.moda",
+    "joao@testing.email.ai.moda",
+    "maria@testing.email.ai.moda",
+    "juan@testing.email.ai.moda",
+    "luana@testing.email.ai.moda",
   ])
 }
 
@@ -97,8 +97,8 @@ resource "corellium_v1user" "student" {
   administrator = false
 }
 
-resource "corellium_v1team" "student_team" {
-  label = "student_team"
+resource "corellium_v1team" "demo" {
+  label = "demo"
   users = [
     for user in corellium_v1user.student : {
       id = user.id
@@ -107,8 +107,8 @@ resource "corellium_v1team" "student_team" {
 }
 
 # Create a project.
-resource "corellium_v1project" "student_project" {
-  name = "student_project"
+resource "corellium_v1project" "demo" {
+  name = "demo"
   settings = {
     version = 1
     internet_access = false
@@ -120,8 +120,8 @@ resource "corellium_v1project" "student_project" {
   users = []
   teams = [
     {
-        id = corellium_v1team.student_team.id
-        role = "admin"
+      id = corellium_v1team.demo.id
+      role = "admin"
     }
   ]
 }
@@ -129,8 +129,8 @@ resource "corellium_v1project" "student_project" {
 # Create a instance.
 resource "corellium_v1instance" "student_instance" {
   name = "student_instance"
-  flavor = "samsung-galaxy-s-duos"
   # The flavor "samsung-galaxy-s-duos" is a Samsung Galaxy S Duos (GT-S7562) device and require 2 cores at least.
-  project = corellium_v1project.student_project.id
+  flavor = "samsung-galaxy-s-duos"
   os = "13.0.0"
+  project = corellium_v1project.demo.id
 }

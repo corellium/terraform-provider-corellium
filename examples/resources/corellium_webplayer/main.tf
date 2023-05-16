@@ -13,28 +13,28 @@ provider "corellium" {
 }
 
 resource "corellium_v1webplayer" "example" {
-    project = ""
-    instanceid = ""
-    expiresinseconds = ""
-    features = {
-      apps = false
-      console = false
-      coretrace = false
-      devicecontrol = false
-      devicedelete = false
-      files = false
-      frida = false
-      images = false
-      messaging = false
-      netmon = false
-      network = false
-      portforwarding = false
-      profile = false
-      sensors = false
-      settings = false
-      snapshots = false
-      strace = false
-      system = false
-      connect = false
-    }
+  project = ""
+  instanceid = ""
+  expiresinseconds = ""
+  features = {
+    apps = false
+    console = false
+    coretrace = false
+    devicecontrol = false
+    devicedelete = false
+    files = false
+    frida = false
+    images = false
+    messaging = false
+    netmon = false
+    network = false
+    portforwarding = false
+    profile = false
+    sensors = false
+    settings = false
+    snapshots = false
+    strace = false
+    system = false
+    connect = false
+  }
 }

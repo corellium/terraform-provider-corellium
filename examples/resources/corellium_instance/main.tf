@@ -12,10 +12,24 @@ provider "corellium" {
   token = ""
 }
 
+resource "corellium_v1project" "example" {
+  name = "example"
+  settings = {
+      version = 1
+      internet_access = false
+      dhcp = false
+  }
+  quotas = {
+      cores = 2
+  }
+  teams = []
+  users = []
+}
+
 resource "corellium_v1instance" "example" {
-    name = "example"
-    flavor = "iphone7plus"
-    project = "fa79475c-2703-4ccc-bc17-1876c2593ec6"
-    os = "15.7.5"
+  name = "example"
+  flavor = "iphone7plus"
+  os = "15.7.5"
+  project = corellium_v1project.example.id
 }
 
