@@ -12,8 +12,31 @@ provider "corellium" {
   token = ""
 }
 
+resource "corellium_v1project" "example" {
+  name = "example"
+  settings = {
+      version = 1
+      internet_access = false
+      dhcp = false
+  }
+  quotas = {
+      cores = 2
+  }
+  teams = []
+  users = []
+}
+
+resource "corellium_v1instance" "example" {
+  name = "example"
+  flavor = "iphone7plus"
+  os = "15.7.5"
+  project = corellium_v1project.example.id
+  wait_for_ready = true
+  wait_for_ready_timeout = 300
+}
+
 resource "corellium_v1snapshot" "example" {
-	name = "example"
-	instance = "1a968ea3-ac04-4201-9af0-25afdb80f4c4"
+  name = "example"
+  instance = corellium_v1instance.example.id
 }
 

@@ -12,11 +12,17 @@ provider "corellium" {
   token = ""
 }
 
+resource "random_string" "random" {
+  length           = 32
+  special          = true
+  override_special = "/@£$"
+}
+
 resource "corellium_v1user" "example" {
-	administrator = false
-	label = "test label"
-	name = "test name"
-	email = "testemail@email.com"
-  password = "testpassword"
+  label = "example"
+  name = "example"
+  email = "example@testing.email.ai.moda"
+  password = random_string.random.result
+  administrator = false
 }
 

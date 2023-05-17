@@ -12,11 +12,25 @@ provider "corellium" {
   token = ""
 }
 
+resource "corellium_v1project" "example" {
+  name = "example"
+  settings = {
+    version = 1
+    internet_access = false
+    dhcp = false
+  }
+  quotas = {
+    cores = 1
+  }
+  teams = []
+  users = []
+}
+
 resource "corellium_v1image" "example" {
   name = "example"
   type = "backup"
-  filename = "example.img"
+  filename = "/tmp/example.img"
   encapsulated = false 
-  project = "fa79475c-2703-4ccc-bc17-1876c2593ec6"
+  project = corellium_v1project.example.id
 }
 
