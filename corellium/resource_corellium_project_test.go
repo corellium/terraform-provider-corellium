@@ -10,7 +10,6 @@ import (
 func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		IsUnitTest:               true,
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
@@ -191,7 +190,6 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
 func TestAccCorelliumV1ProjectResource_add_users_on_creation(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		IsUnitTest:               true,
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
@@ -266,7 +264,6 @@ func TestAccCorelliumV1ProjectResource_add_users_on_creation(t *testing.T) {
 func TestAccCorelliumV1ProjectResource_add_teams_on_creation(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		IsUnitTest:               true,
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
@@ -308,7 +305,6 @@ func TestAccCorelliumV1ProjectResource_add_teams_on_creation(t *testing.T) {
 func TestAccCorelliumV1ProjectResource_project_name_duplicated(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		IsUnitTest:               true,
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
@@ -341,6 +337,32 @@ func TestAccCorelliumV1ProjectResource_project_name_duplicated(t *testing.T) {
                 }
                 `,
 				ExpectError: regexp.MustCompile("A project with the name test already exists"),
+			},
+		},
+	})
+}
+
+func TestAccCorelliumV1ProjectResource_non_enterprise(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfigNonEnterprise + `
+                resource "corellium_v1project" "test" {
+                    name = "test"
+                    settings = {
+                        version = 1
+                        internet_access = false
+                        dhcp = false
+                    }
+                    quotas = {
+                        cores = 1
+                    }
+                    users = []
+                    teams = []
+                }
+                `,
+				ExpectError: regexp.MustCompile("You don't have permission to create a project."),
 			},
 		},
 	})

@@ -64,3 +64,33 @@ func TestAccCorelliumV1SnapshotResource(t *testing.T) {
 		},
 	})
 }
+
+func TestAccCorelliumV1SnapshotResource_non_enterprise(t *testing.T) {
+	t.Skip("Skipping enterprise snapshot resource tests")
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfig + `
+                data "corellium_v1projects" "test" {}
+
+                resource "corellium_v1instance" "test" {
+                    name = "test"
+                    flavor = "samsung-galaxy-s-duos"
+                    os = "13.0.0"
+                    project = data.corellium_v1projects.test.projects[0].id
+                }
+
+                resource "corellium_v1snapshot" "test" {
+                    name = "test"
+                    instance = corellium_v1instance.test.id
+                }`,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("corellium_v1snapshot.test", "name", "test"),
+					resource.TestCheckResourceAttrSet("corellium_v1snapshot.test", "instance"),
+				),
+			},
+		},
+	})
+}

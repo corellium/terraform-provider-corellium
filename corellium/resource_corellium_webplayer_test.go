@@ -2,6 +2,7 @@ package corellium
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -99,6 +100,54 @@ func TestAccCorelliumV1WebPlayer(t *testing.T) {
 					resource.TestCheckResourceAttrSet("corellium_v1webplayer.test", "identifier"),
 					// resource.TestCheckResourceAttrSet("corellium_v1webplayer.test", "expiration"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccCorelliumV1WebPlayer_non_enterprise(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfigNonEnterprise + `
+                data "corellium_v1projects" "test" {}
+
+                resource "corellium_v1instance" "test" {
+                    name = "test"
+                    flavor = "samsung-galaxy-s-duos"
+                    os = "13.0.0"
+                    project = data.corellium_v1projects.test.projects[0].id
+                }
+
+                resource "corellium_v1webplayer" "test" {
+                    project = data.corellium_v1projects.test.projects[0].id
+                    instanceid = corellium_v1instance.test.id
+                    expiresinseconds = 0
+                    features = {
+                      apps = false
+                      console = false
+                      coretrace = false
+                      devicecontrol = false
+                      devicedelete = false
+                      files = false
+                      frida = false
+                      images = false
+                      messaging = false
+                      netmon = false
+                      network = false
+                      portforwarding = false
+                      profile = false
+                      sensors = false
+                      settings = false
+                      snapshots = false
+                      strace = false
+                      system = false
+                      connect = false
+                    }
+                }
+                `,
+				ExpectError: regexp.MustCompile("Error creating a web player session"),
 			},
 		},
 	})
