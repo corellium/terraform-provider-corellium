@@ -1,11 +1,21 @@
-name: Dev Container Build
+name: Acceptance tests
 on:
   workflow_dispatch:
   push:
+    branches:
+      - 'staging'
+      - 'main'
   pull_request:
     branches:
       - 'staging'
       - 'main'
+    types:
+      - assigned
+      - opened
+      - synchronize
+      - reopened
+      - edited
+      - ready_for_review
   schedule:
       - cron: '0 12 * * *' # This will run the workflow every day at 00:00 UTC
 
@@ -33,7 +43,6 @@ jobs:
             go get
             go mod tidy
             make install
-            make test
             make testacc
   non-enterprise:
     runs-on: ubuntu-latest
@@ -54,5 +63,4 @@ jobs:
             go get
             go mod tidy
             make install
-            make test
             NON_ENTERPRISE=1 make testacc
