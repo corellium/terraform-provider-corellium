@@ -12,10 +12,31 @@ provider "corellium" {
   token = ""
 }
 
+resource "corellium_v1project" "example" {
+  name = "example"
+  settings = {
+    version = 1
+    internet_access = false
+    dhcp = false
+  }
+  quotas = {
+      cores = 2
+  }
+  users = []
+  teams = []
+}
+
+resource "corellium_v1instance" "example" {
+  name = "example"
+  flavor = "ranchu"
+  project = corellium_v1project.example.id
+  os = "7.1.2"
+}
+
 resource "corellium_v1webplayer" "example" {
-  project = ""
-  instanceid = ""
-  expiresinseconds = ""
+  project = corellium_v1project.example.id
+  instanceid = corellium_v1instance.example.id
+  expiresinseconds = "1800"
   features = {
     apps = false
     console = false
@@ -36,5 +57,5 @@ resource "corellium_v1webplayer" "example" {
     strace = false
     system = false
     connect = false
-  }
+}
 }
