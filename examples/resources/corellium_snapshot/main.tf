@@ -32,7 +32,7 @@ resource "corellium_v1instance" "example" {
   os = "15.7.5"
   project = corellium_v1project.example.id
   wait_for_ready = true
-  wait_for_ready_timeout = 300
+  wait_for_ready_timeout = 500
 }
 
 resource "corellium_v1snapshot" "example" {

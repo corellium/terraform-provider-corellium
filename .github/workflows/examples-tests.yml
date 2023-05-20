@@ -1,0 +1,56 @@
+name: Examples tests
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'examples/**'
+    branches:
+      - 'staging'
+      - 'main'
+  pull_request:
+    paths:
+      - 'examples/**'
+    branches:
+      - 'staging'
+      - 'main'
+    types:
+      - assigned
+      - opened
+      - synchronize
+      - reopened
+      - edited
+      - ready_for_review
+  schedule:
+      - cron: '0 12 * * *' # This will run the workflow every day at 00:00 UTC
+
+concurrency:
+  group: testing-concurrency-group
+  cancel-in-progress: false
+
+jobs:
+  examples:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+          cache: false
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Installing provider
+        run: |
+          make build 
+          mkdir -p ~/.terraform.d/plugins/github.com/aimoda/corellium/1.0.0/linux_amd64/
+          cp terraform-provider-corellium ~/.terraform.d/plugins/github.com/aimoda/corellium/1.0.0/linux_amd64/
+
+      - name: Running examples tests
+        run: |
+          export CORELLIUM_API_TOKEN=${{ secrets.CORELLIUM_API_TOKEN }}
+          export CORELLIUM_API_HOST=${{ vars.CORELLIUM_API_HOST }}
+          make testexamples
