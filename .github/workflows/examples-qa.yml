@@ -1,4 +1,4 @@
-name: Examples tests
+name: Examples QA
 on:
   workflow_dispatch:
   push:
@@ -45,13 +45,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      # TODO: Refactor the provider installation before the launching. We are doing this because the provider is not published yet.
       - name: Installing provider
         run: |
           make build 
           mkdir -p ~/.terraform.d/plugins/github.com/aimoda/corellium/1.0.0/linux_amd64/
           cp terraform-provider-corellium ~/.terraform.d/plugins/github.com/aimoda/corellium/1.0.0/linux_amd64/
+      
+      - name: Check formatting
+        run: terraform fmt -check -recursive ./examples
 
-      - name: Running examples tests
+      - name: Run tests
         run: |
           export CORELLIUM_API_TOKEN=${{ secrets.CORELLIUM_API_TOKEN }}
           export CORELLIUM_API_HOST=${{ vars.CORELLIUM_API_HOST }}

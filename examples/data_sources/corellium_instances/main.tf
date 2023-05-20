@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     corellium = {
-      source = "github.com/aimoda/corellium"
+      source  = "github.com/aimoda/corellium"
       version = "~> 1.0.0"
     }
   }

@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     corellium = {
-      source = "github.com/aimoda/corellium"
+      source  = "github.com/aimoda/corellium"
       version = "~> 1.0.0"
     }
   }
@@ -21,10 +21,10 @@ resource "random_string" "random" {
 }
 
 resource "corellium_v1user" "example" {
-  label = "example"
-  name = "example"
-  email = "example@testing.email.ai.moda"
-  password = random_string.random.result
+  label         = "example"
+  name          = "example"
+  email         = "example@testing.email.ai.moda"
+  password      = random_string.random.result
   administrator = false
 }
 
