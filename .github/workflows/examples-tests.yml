@@ -4,12 +4,14 @@ on:
   push:
     paths:
       - 'examples/**'
+      - 'examples_test.go'
     branches:
       - 'staging'
       - 'main'
   pull_request:
     paths:
       - 'examples/**'
+      - 'examples_test.go'
     branches:
       - 'staging'
       - 'main'
