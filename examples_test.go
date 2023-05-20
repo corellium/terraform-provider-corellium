@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -63,6 +64,18 @@ func TestExamples_resources(t *testing.T) {
 			}
 
 			terraformOptions := &terraform.Options{
+				BackendConfig: map[string]interface{}{
+					"bucket":                      os.Getenv("S3_BUCKET"),
+					"endpoint":                    os.Getenv("S3_ENDPOINT"),
+					"region":                      os.Getenv("S3_REGION"),
+					"access_key":                  os.Getenv("S3_ACCESS_KEY"),
+					"secret_key":                  os.Getenv("S3_SECRET_KEY"),
+					"sse_customer_key":            os.Getenv("S3_SSE_KEY"),
+					"key":                         fmt.Sprintf("%s/terraform.tfstate", tt.dir),
+					"skip_credentials_validation": true,
+					"skip_region_validation":      true,
+					"encrypt":                     true,
+				},
 				TerraformDir: tt.dir,
 			}
 

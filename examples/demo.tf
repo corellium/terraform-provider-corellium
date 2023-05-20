@@ -39,6 +39,8 @@ terraform {
     # https://developer.hashicorp.com/terraform/language/providers/requirements#version-constraints
     }
   }
+
+  backend "s3" {}
 }
 
 provider "corellium" {
