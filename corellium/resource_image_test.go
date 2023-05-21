@@ -36,6 +36,7 @@ func TestAccCorelliumV1ImageResource(t *testing.T) {
         }
         users = []
         teams = []
+        keys  = []
     }
     `
 

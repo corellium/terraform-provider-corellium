@@ -8,8 +8,10 @@ import (
 
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"terraform-provider-corellium/corellium/pkg/api"
 )
@@ -150,6 +152,45 @@ func (d *V1ProjectsDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 								},
 							},
 						},
+						"keys": schema.ListNestedAttribute{
+							Description: "Project keys",
+							Required:    true,
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"id": schema.StringAttribute{
+										Description: "ProjectKey ID",
+										Computed:    true,
+									},
+									"label": schema.StringAttribute{
+										Description: "ProjectKey label",
+										Required:    true,
+									},
+									"kind": schema.StringAttribute{
+										Description: "ProjectKey kind",
+										Required:    true,
+										Validators: []validator.String{
+											stringvalidator.OneOf("ssh", "adb"),
+										},
+									},
+									"key": schema.StringAttribute{
+										Description: "ProjectKey key",
+										Required:    true,
+									},
+									"fingerprint": schema.StringAttribute{
+										Description: "ProjectKey fingerprint",
+										Computed:    true,
+									},
+									"created_at": schema.StringAttribute{
+										Description: "ProjectKey creation date",
+										Computed:    true,
+									},
+									"updated_at": schema.StringAttribute{
+										Description: "ProjectKey last update date",
+										Computed:    true,
+									},
+								},
+							},
+						},
 						"created_at": schema.StringAttribute{
 							Description: "Project created at",
 							Computed:    true,
@@ -211,7 +252,6 @@ func (d *V1ProjectsDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		)
 		return
 	}
-
 	state.Id = types.StringValue(id)
 	state.Projects = make([]V1ProjectModel, len(projects))
 	for i, project := range projects {
@@ -230,10 +270,49 @@ func (d *V1ProjectsDataSource) Read(ctx context.Context, req datasource.ReadRequ
 			Instances: types.NumberValue(big.NewFloat(float64(project.Quotas.GetInstances()))),
 			Ram:       types.NumberValue(big.NewFloat(float64(project.Quotas.GetRam()))),
 		}
+
+		diags = resp.State.Set(ctx, &state)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		projectKeys, r, err := d.client.ProjectsApi.V1GetProjectKeys(auth, project.Id).Execute()
+		if err != nil {
+			b, err := io.ReadAll(r.Body)
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Error reading the project keys",
+					"Coudn't read the response body: "+err.Error(),
+				)
+				return
+			}
+
+			resp.Diagnostics.AddError(
+				"Unable to read project keys",
+				"An unexpected error was encountered trying to read the project keys from the project:\n\n"+string(b))
+			return
+		}
+
+		state.Projects[i].Keys = make([]V1ProjectKeyModel, len(projectKeys))
+		for j, key := range projectKeys {
+			state.Projects[i].Keys[j].Id = types.StringValue(key.GetIdentifier())
+			state.Projects[i].Keys[j].Label = types.StringValue("")
+			state.Projects[i].Keys[j].Kind = types.StringValue(key.GetKind())
+			state.Projects[i].Keys[j].Key = types.StringValue(key.GetKey())
+			state.Projects[i].Keys[j].Fingerprint = types.StringValue(key.GetFingerprint())
+			state.Projects[i].Keys[j].CreatedAt = types.StringValue(key.GetCreatedAt().String())
+			state.Projects[i].Keys[j].UpdatedAt = types.StringValue(key.GetUpdatedAt().String())
+		}
+
+		diags = resp.State.Set(ctx, &state)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 
 	diags = resp.State.Set(ctx, &state)
-
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

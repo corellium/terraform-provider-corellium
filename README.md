@@ -57,12 +57,13 @@ resource "corellium_v1project" "example" {
     },
   ]
   teams = []
+  keys  = []
 }
 
 resource "corellium_v1instance" "example" {
+  project = corellium_v1project.example.id
   name = "student_instance"
   flavor = "samsung-galaxy-s-duos"
-  project = corellium_v1project.example.id
   os = "13.0.0"
 }
 ```

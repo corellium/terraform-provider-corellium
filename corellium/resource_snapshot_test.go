@@ -22,6 +22,7 @@ func TestAccCorelliumV1SnapshotResource(t *testing.T) {
         }
         users = []
         teams = []
+        keys  = []
     }
     `
 

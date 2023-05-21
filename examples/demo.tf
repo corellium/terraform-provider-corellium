@@ -126,6 +126,7 @@ resource "corellium_v1project" "demo" {
       role = "admin"
     }
   ]
+  keys = []
 }
 
 # Create a instance.

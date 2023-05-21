@@ -26,6 +26,7 @@ resource "corellium_v1project" "example" {
   }
   teams = []
   users = []
+  keys  = []
 }
 
 resource "corellium_v1image" "example" {
