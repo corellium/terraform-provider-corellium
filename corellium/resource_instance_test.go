@@ -20,6 +20,7 @@ func TestAccCorelliumV1InstanceResource_basic(t *testing.T) {
         }
         users = []
         teams = []
+        keys  = []
     }
     `
 
@@ -74,6 +75,7 @@ func TestAccCorelliumV1InstanceResource_wait_for_ready(t *testing.T) {
         }
         users = []
         teams = []
+        keys  = []
     }
     `
 

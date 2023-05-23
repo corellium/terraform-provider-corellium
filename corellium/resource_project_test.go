@@ -25,6 +25,7 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                     }
                     users = []
                     teams = []
+					keys = []
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
@@ -51,6 +52,7 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                     }
                     users = []
                     teams = []
+					keys = []
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
@@ -82,6 +84,7 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                         }
                     ]
                     teams = []
+					keys = []
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
@@ -110,6 +113,7 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                     }
                     users = []
                     teams = []
+					keys = []
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
@@ -142,6 +146,7 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                             role = "admin"
                         }
                     ]
+					keys = []
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
@@ -170,6 +175,7 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                     }
                     users = []
                     teams = []
+					keys = []
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
@@ -210,6 +216,7 @@ func TestAccCorelliumV1ProjectResource_add_users_on_creation(t *testing.T) {
                         }
                     ]
                     teams = []
+					keys = []
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
@@ -243,6 +250,7 @@ func TestAccCorelliumV1ProjectResource_add_users_on_creation(t *testing.T) {
                             role = "admin"
                         }
                     ]
+					keys = []
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
@@ -284,6 +292,7 @@ func TestAccCorelliumV1ProjectResource_add_teams_on_creation(t *testing.T) {
                             role = "admin"
                         }
                     ]
+					keys = []
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
@@ -320,6 +329,7 @@ func TestAccCorelliumV1ProjectResource_project_name_duplicated(t *testing.T) {
                     }
                     users = []
                     teams = []
+					keys = []
                 }
 
                 resource "corellium_v1project" "test_duplicated" {
@@ -334,9 +344,89 @@ func TestAccCorelliumV1ProjectResource_project_name_duplicated(t *testing.T) {
                     }
                     users = []
                     teams = []
+					keys = []
                 }
                 `,
 				ExpectError: regexp.MustCompile("A project with the name test already exists"),
+			},
+		},
+	})
+}
+
+func TestAccCorelliumV1ProjectResource_with_project_keys(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfig + `
+                resource "corellium_v1project" "test" {
+                    name = "test"
+                    settings = {
+                        version = 1
+                        internet_access = false
+                        dhcp = false
+                    }
+                    quotas = {
+                        cores = 1
+                    }
+                    users = []
+                    teams = []
+					keys = []
+                }
+                `,
+			},
+			{
+				Config: providerConfig + `
+				resource "corellium_v1project" "test" {
+					name = "test"
+					settings = {
+						version = 1
+						internet_access = false
+						dhcp = false
+					}
+					quotas = {
+						cores = 1
+					}
+					users = []
+					teams = []
+					keys = [
+						{
+							label = "test"
+							kind = "ssh"
+							key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFD33iT/L6sIb3kUWNMg2q9IbIF0DzksIRXJt4BbaP3K test"
+						}
+					]
+				}
+				`,
+			},
+			{
+				Config: providerConfig + `
+				resource "corellium_v1project" "test" {
+					name = "test"
+					settings = {
+						version = 1
+						internet_access = false
+						dhcp = false
+					}
+					quotas = {
+						cores = 1
+					}
+					users = []
+					teams = []
+					keys = [
+						{
+							label = "test"
+							kind = "ssh"
+							key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFD33iT/L6sIb3kUWNMg2q9IbIF0DzksIRXJt4BbaP3K test"
+						},
+						{
+							label = "test2"
+							kind = "ssh"
+							key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKGWrBz0P8BWaELhsocREATc3jmhfyxFuADq07xdnZTz test"
+						}
+					]
+				}
+				`,
 			},
 		},
 	})
@@ -360,6 +450,7 @@ func TestAccCorelliumV1ProjectResource_non_enterprise(t *testing.T) {
                     }
                     users = []
                     teams = []
+					keys = []
                 }
                 `,
 				ExpectError: regexp.MustCompile("You don't have permission to create a project."),

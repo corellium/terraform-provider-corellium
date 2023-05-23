@@ -8,11 +8,13 @@ import (
 	"sync"
 	"time"
 
+	"terraform-provider-corellium/corellium/pkg/api"
 	"github.com/aimoda/go-corellium-api-client"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -75,6 +77,25 @@ type V1ProjectQuotasModel struct {
 	Ram types.Number `tfsdk:"ram"`
 }
 
+type V1ProjectKeyModel struct {
+	// Id is the Identifier project key ID.
+	// Id is called Identifier in the API.
+	Id types.String `tfsdk:"id"`
+	// Label is the project key label.
+	Label types.String `tfsdk:"label"`
+	// Kind is the project key kind.
+	// It can be "ssh" or "adb".
+	Kind types.String `tfsdk:"kind"`
+	// Key is the project key.
+	Key types.String `tfsdk:"key"`
+	// Fingerprint is the project key fingerprint.
+	Fingerprint types.String `tfsdk:"fingerprint"`
+	// CreateAt is the project key creation date.
+	CreatedAt types.String `tfsdk:"created_at"`
+	// UpdateAt is the project key last update date.
+	UpdatedAt types.String `tfsdk:"updated_at"`
+}
+
 // V1ProjectModel maps the resource schema data.
 // https://github.com/aimoda/go-corellium-api-client/blob/main/docs/Project.md
 type V1ProjectModel struct { // TODO: add quotas_used model to the schema.
@@ -91,6 +112,8 @@ type V1ProjectModel struct { // TODO: add quotas_used model to the schema.
 	Users []V1ProjectUserModel `tfsdk:"users"`
 	// Teams is the project teams.
 	Teams []V1ProjectTeamModel `tfsdk:"teams"`
+	// Keys is a list of the project authroized keys.
+	Keys []V1ProjectKeyModel `tfsdk:"keys"`
 	// CreatedAt is the project creation date.
 	CreatedAt types.String `tfsdk:"created_at"`
 	// UpdatedAt is the project last update date.
@@ -201,6 +224,45 @@ func (d *CorelliumV1ProjectResource) Schema(_ context.Context, _ resource.Schema
 						"role": schema.StringAttribute{
 							Description: "Project team role",
 							Required:    true,
+						},
+					},
+				},
+			},
+			"keys": schema.ListNestedAttribute{
+				Description: "Project keys",
+				Required:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "ProjectKey ID",
+							Computed:    true,
+						},
+						"label": schema.StringAttribute{
+							Description: "ProjectKey label",
+							Required:    true,
+						},
+						"kind": schema.StringAttribute{
+							Description: "ProjectKey kind",
+							Required:    true,
+							Validators: []validator.String{
+								stringvalidator.OneOf("ssh", "adb"),
+							},
+						},
+						"key": schema.StringAttribute{
+							Description: "ProjectKey key",
+							Required:    true,
+						},
+						"fingerprint": schema.StringAttribute{
+							Description: "ProjectKey fingerprint",
+							Computed:    true,
+						},
+						"created_at": schema.StringAttribute{
+							Description: "ProjectKey creation date",
+							Computed:    true,
+						},
+						"updated_at": schema.StringAttribute{
+							Description: "ProjectKey last update date",
+							Computed:    true,
 						},
 					},
 				},
@@ -422,6 +484,51 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 		}
 	}
 
+	if plan.Keys != nil && len(plan.Keys) > 0 {
+		for i, key := range plan.Keys {
+			p := corellium.NewProjectKey(key.Kind.ValueString(), key.Key.ValueString())
+			projectKey, r, err := d.client.ProjectsApi.V1AddProjectKey(auth, created.Id).ProjectKey(*p).Execute()
+			if err != nil {
+				if r.StatusCode == http.StatusForbidden {
+					resp.Diagnostics.AddError(
+						"Error creating project key",
+						"You don't have permission to create an project key in this project.",
+					)
+					return
+				}
+
+				b, err := io.ReadAll(r.Body)
+				if err != nil {
+					resp.Diagnostics.AddError(
+						"Error creating project key",
+						"Coudn't read the response body: "+err.Error(),
+					)
+					return
+				}
+
+				resp.Diagnostics.AddError(
+					"Error creating project key",
+					"An unexpected error was encountered trying to create the project key:\n\n"+string(b),
+				)
+				return
+			}
+
+			plan.Keys[i].Id = types.StringValue(projectKey.GetIdentifier())
+			plan.Keys[i].Label = types.StringValue(plan.Keys[i].Label.ValueString())
+			plan.Keys[i].Kind = types.StringValue(projectKey.GetKind())
+			plan.Keys[i].Key = types.StringValue(projectKey.GetKey())
+			plan.Keys[i].Fingerprint = types.StringValue(projectKey.GetFingerprint())
+			plan.Keys[i].CreatedAt = types.StringValue(projectKey.GetCreatedAt().String())
+			plan.Keys[i].UpdatedAt = types.StringValue(projectKey.GetUpdatedAt().String())
+
+			resp.State.Set(ctx, plan)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+		}
+	}
+
 	plan.Id = types.StringValue(project.GetId())
 	plan.Name = types.StringValue(project.GetName())
 
@@ -563,6 +670,50 @@ func (d *CorelliumV1ProjectResource) Read(ctx context.Context, req resource.Read
 			}
 
 			state.Teams[i] = team
+		}
+	}
+
+	if state.Keys != nil {
+		for _, key := range state.Keys {
+			projectKeys, r, err := d.client.ProjectsApi.V1GetProjectKeys(auth, project.Id).Execute()
+			if err != nil {
+				b, err := io.ReadAll(r.Body)
+				if err != nil {
+					resp.Diagnostics.AddError(
+						"Error reading the project keys",
+						"Coudn't read the response body: "+err.Error(),
+					)
+					return
+				}
+
+				resp.Diagnostics.AddError(
+					"Unable to read project keys",
+					"An unexpected error was encountered trying to read the project keys from the project:\n\n"+string(b))
+				return
+			}
+
+			var found bool
+			for _, k := range projectKeys {
+				if k.GetIdentifier() == key.Id.ValueString() {
+					key.Id = types.StringValue(k.GetIdentifier())
+					key.Label = types.StringValue(key.Label.String())
+					key.Kind = types.StringValue(k.GetKind())
+					key.Key = types.StringValue(k.GetKey())
+					key.Fingerprint = types.StringValue(k.GetFingerprint())
+					key.CreatedAt = types.StringValue(k.GetCreatedAt().String())
+					key.UpdatedAt = types.StringValue(k.GetUpdatedAt().String())
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				resp.Diagnostics.AddError(
+					"Error reading the project keys",
+					"Project key with ID "+key.Id.ValueString()+" not found",
+				)
+				return
+			}
 		}
 	}
 
@@ -873,6 +1024,100 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 				}
 
 				state.Teams = append(state.Teams, team)
+			}
+		}
+	}
+
+	if len(state.Keys) > 0 {
+		for i, key := range state.Keys {
+			var found bool
+			for _, k := range plan.Keys {
+				if k.Id.Equal(key.Id) {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				r, err := d.client.ProjectsApi.V1RemoveProjectKey(auth, state.Id.ValueString(), key.Id.ValueString()).Execute()
+				if err != nil {
+					b, err := io.ReadAll(r.Body)
+					if err != nil {
+						resp.Diagnostics.AddError(
+							"Error removing key from project",
+							"Coudn't read the response body: "+err.Error(),
+						)
+						return
+					}
+
+					resp.Diagnostics.AddError(
+						"Error removing key from project",
+						"An unexpected error was encountered trying to remove key from project:\n\n"+string(b),
+					)
+					return
+				}
+
+				// This snippet removes a key from the state on each iteration.
+				if len(state.Keys) > 1 {
+					if i < len(state.Keys)-1 {
+						// Removes the key from the state by copying the slice without the key.
+						state.Keys = append(state.Keys[:i], state.Keys[i+1:]...)
+					} else {
+						// However, if the key is the last one, we can just remove it from the slice.
+						state.Keys = state.Keys[:i]
+					}
+				} else {
+					// If the keys attribute is empty, we need to set the state to empty too.
+					state.Keys = []V1ProjectKeyModel{}
+
+					// However, when the plan has keys atributes set to nil, we need to set the state to nil too.
+					if plan.Keys == nil {
+						state.Keys = nil
+					}
+				}
+			}
+		}
+	}
+
+	if len(plan.Keys) > 0 {
+		for i, key := range plan.Keys {
+			var found bool
+			for _, k := range state.Keys {
+				if k.Id.Equal(key.Id) {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				p := corellium.NewProjectKey(key.Kind.ValueString(), key.Key.ValueString())
+				key, r, err := d.client.ProjectsApi.V1AddProjectKey(auth, state.Id.ValueString()).ProjectKey(*p).Execute()
+				if err != nil {
+					b, err := io.ReadAll(r.Body)
+					if err != nil {
+						resp.Diagnostics.AddError(
+							"Error adding key to project",
+							"Coudn't read the response body: "+err.Error(),
+						)
+						return
+					}
+
+					resp.Diagnostics.AddError(
+						"Error adding key to project",
+						"An unexpected error was encountered trying to add key to project:\n\n"+string(b),
+					)
+					return
+				}
+
+				state.Keys = append(state.Keys, V1ProjectKeyModel{
+					Id:          types.StringValue(key.GetIdentifier()),
+					Label:       plan.Keys[i].Label,
+					Kind:        types.StringValue(key.Kind),
+					Key:         types.StringValue(key.Key),
+					Fingerprint: types.StringValue(key.GetFingerprint()),
+					// CreatedAt:   types.StringValue(time.Time(key.CreatedAt).String()),
+					// UpdatedAt:   types.StringValue(time.Time(key.UpdatedAt).String()),
+				})
 			}
 		}
 	}

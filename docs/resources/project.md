@@ -22,6 +22,13 @@ resource "corellium_v1project" "example" {
         role = "admin"
     }
   ]
+  keys = [
+    {
+      label = "example"
+      kind  = "ssh"
+      key   = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKGWrBz0P8BWaELhsocREATc3jmhfyxFuADq07xdnZTz test"
+    }
+  ]
 }
 ```
 
@@ -39,6 +46,7 @@ resource "corellium_v1project" "example" {
 
 - `teams` (list of `team`) - The teams associated to this project.
 
+- `keys` (list of `key`) - The authorized keys associated to this project.
 ### Optional
 
 ### Read-only
@@ -98,3 +106,23 @@ resource "corellium_v1project" "example" {
 - `label` (string) - User label.
 
 - `email` (string) - User e-mail.
+
+### Nested schema for `key`
+
+#### Required
+
+- `label` (string) - Key label.
+
+- `kind` (string) - Key kind. Must be "ssh" or "agent".
+
+- `key` (string) - Key content.
+
+#### Read-only
+
+- `id` (string) - Key ID.
+
+- `fingerprint` (string) - Key fingerprint.
+
+- `created_at` (string) - Key creation time.
+
+- `updated_at` (string) - Key update time.

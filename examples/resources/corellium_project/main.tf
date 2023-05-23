@@ -26,5 +26,12 @@ resource "corellium_v1project" "example" {
   }
   teams = []
   users = []
+  keys = [
+    {
+      label = "example"
+      kind  = "ssh"
+      key   = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKGWrBz0P8BWaELhsocREATc3jmhfyxFuADq07xdnZTz test"
+    }
+  ]
 }
 

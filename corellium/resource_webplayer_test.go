@@ -22,6 +22,7 @@ func TestAccCorelliumV1WebPlayer(t *testing.T) {
         }
         users = []
         teams = []
+        keys  = []
     }
     `
 
