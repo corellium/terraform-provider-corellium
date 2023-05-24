@@ -6,7 +6,7 @@ terraform {
     }
   }
 
-  backend "s3" {}
+  # backend "s3" {}
 }
 
 provider "corellium" {
@@ -34,5 +34,9 @@ resource "corellium_v1instance" "example" {
   name    = "example"
   flavor  = "iphone7plus"
   os      = "15.7.5"
+
+  provisioner "local-exec" {
+    command = "uptime"
+  }
 }
 

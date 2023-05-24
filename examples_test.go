@@ -36,6 +36,14 @@ func TestExamples_resources(t *testing.T) {
 			dir:  "./examples/resources/corellium_instance",
 		},
 		{
+			name: "testing resource instance with local-exec provisioner",
+			dir:  "./examples/resources/corellium_instance/local-exec",
+		},
+		{
+			name: "testing resource instance with remote-exec provisioner",
+			dir:  "./examples/resources/corellium_instance/remote-exec",
+		},
+		{
 			name: "testing resource project",
 			dir:  "./examples/resources/corellium_project",
 		},
