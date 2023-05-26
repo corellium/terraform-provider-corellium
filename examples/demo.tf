@@ -130,10 +130,10 @@ resource "corellium_v1project" "demo" {
 }
 
 # Create a instance.
-resource "corellium_v1instance" "demo_instance" {
-  name = "demo_instance"
-  # The flavor "samsung-galaxy-s-duos" is a Samsung Galaxy S Duos (GT-S7562) device and require 2 cores at least.
-  flavor  = "samsung-galaxy-s-duos"
-  os      = "13.0.0"
+resource "corellium_v1instance" "demo" {
   project = corellium_v1project.demo.id
+  name    = "demo"
+  # The flavor "samsung-galaxy-s-duos" is a Samsung Galaxy S Duos (GT-S7562) device and require 2 cores at least.
+  flavor = "samsung-galaxy-s-duos"
+  os     = "13.0.0"
 }

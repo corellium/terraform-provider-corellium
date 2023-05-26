@@ -14,4 +14,4 @@ else
 endif
 
 testexamples:
-	go test -failfast -count=1 -v . -run "TestExamples.*"
+	go test -failfast -count=1 -timeout 1h -v . -run "TestExamples.*"
