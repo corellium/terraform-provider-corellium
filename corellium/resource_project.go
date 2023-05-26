@@ -8,13 +8,13 @@ import (
 	"sync"
 	"time"
 
-	"terraform-provider-corellium/corellium/pkg/api"
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -437,6 +437,24 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 				return
 			}
 
+			r, err = d.client.RolesApi.V1AddUserRoleToProject(auth, project.GetId(), user.Id.ValueString(), user.Role.ValueString()).Execute()
+			if err != nil {
+				b, err := io.ReadAll(r.Body)
+				if err != nil {
+					resp.Diagnostics.AddError(
+						"Error adding user to project",
+						"Coudn't read the response body: "+err.Error(),
+					)
+					return
+				}
+
+				resp.Diagnostics.AddError(
+					"Error adding user to project",
+					"An unexpected error was encountered trying to add user to project:\n\n"+string(b),
+				)
+				return
+			}
+
 			plan.Users[i] = user
 		}
 	}
@@ -476,6 +494,24 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 				resp.Diagnostics.AddError(
 					"Error get the teams",
 					"Team with ID "+team.Id.ValueString()+" not found",
+				)
+				return
+			}
+
+			r, err = d.client.RolesApi.V1AddTeamRoleToProject(auth, project.GetId(), team.Id.ValueString(), team.Role.ValueString()).Execute()
+			if err != nil {
+				b, err := io.ReadAll(r.Body)
+				if err != nil {
+					resp.Diagnostics.AddError(
+						"Error adding team to project",
+						"Coudn't read the response body: "+err.Error(),
+					)
+					return
+				}
+
+				resp.Diagnostics.AddError(
+					"Error adding team to project",
+					"An unexpected error was encountered trying to add team to project:\n\n"+string(b),
 				)
 				return
 			}

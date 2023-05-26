@@ -504,7 +504,7 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 					}
 
 					resp.Diagnostics.AddError(
-						"Error creating snapshot",
+						"Error creating instance",
 						"An unexpected error was encountered trying to check if instance is ready:\n\n"+string(b),
 					)
 					return nil, "", err
@@ -534,8 +534,8 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 
 		if _, err := createStateConf.WaitForStateContext(ctx); err != nil {
 			resp.Diagnostics.AddError(
-				"Error creating snapshot",
-				"Coudn't create the snapshot: "+err.Error(),
+				"Error creating instance",
+				"Coudn't create the instance: "+err.Error(),
 			)
 
 			return
