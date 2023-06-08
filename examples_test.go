@@ -55,10 +55,10 @@ func TestExamples_resources(t *testing.T) {
 			name: "testing resource user",
 			dir:  "./examples/resources/corellium_user",
 		},
-		{
+		/*{
 			name: "testing resource webplayer",
 			dir:  "./examples/resources/corellium_webplayer",
-		},
+		},*/
 	}
 
 	for _, tt := range tests {

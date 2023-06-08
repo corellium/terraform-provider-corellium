@@ -6,13 +6,16 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"strings"
+
+	"terraform-provider-corellium/corellium/pkg/api"
 
 	"github.com/aimoda/go-corellium-api-client"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -156,7 +159,8 @@ func (d *V1ModelSoftwareDataSource) Read(ctx context.Context, req datasource.Rea
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	// software, _, err := d.client.ModelsApi.V1GetModelSoftware(auth, state.Model.ValueString()).Execute()
 	// Replace apiUrl with the actual API URL. Workaround for endpoint.
-	customSoftware, err := V1GetModelSoftwareManual(auth, "https://moda.enterprise.corellium.com/api", state.Model.ValueString())
+	url := strings.Join([]string{"https://", os.Getenv("CORELLIUM_API_HOST"), "/api"}, "")
+	customSoftware, err := V1GetModelSoftwareManual(auth, url, state.Model.ValueString())
 	// if err != nil && software != nil {
 	// 	resp.Diagnostics.AddError(
 	// 		"Error getting model software for model: "+state.Model.ValueString()+" Build ID: "+software[0].GetBuildid(),
