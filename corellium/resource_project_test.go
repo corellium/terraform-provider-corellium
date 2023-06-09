@@ -73,6 +73,14 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
 			},
 			{
 				Config: providerConfig + `
+				resource "corellium_v1user" "test" {
+					label = "test"
+					name = "test"
+					email = "testing@testing.ai.moda"
+					password = "123"
+					administrator = true
+				}
+
                 resource "corellium_v1project" "test" {
                     name = "test"
                     settings = {
@@ -85,7 +93,7 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                     }
                     users = [
                         {
-                            id = "60d71152-8b86-4496-b27f-2e30f5bcc59f"
+                            id = corellium_v1user.test.id
                             role = "admin"
                         }
                     ]
@@ -101,7 +109,7 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.cores", "2"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "5"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "12288"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "users.0.id", "60d71152-8b86-4496-b27f-2e30f5bcc59f"),
+					resource.TestCheckResourceAttrSet("corellium_v1project.test", "users.0.id"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "users.0.role", "admin"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.#", "0"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "keys.#", "0"),
@@ -109,6 +117,14 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
 			},
 			{
 				Config: providerConfig + `
+				resource "corellium_v1user" "test" {
+					label = "test"
+					name = "test"
+					email = "testing@testing.ai.moda"
+					password = "123"
+					administrator = true
+				}
+
                 resource "corellium_v1project" "test" {
                     name = "test"
                     settings = {
@@ -139,6 +155,23 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
 			},
 			{
 				Config: providerConfig + `
+				resource "corellium_v1user" "test" {
+					label = "test"
+					name = "test"
+					email = "testing@testing.ai.moda"
+					password = "123"
+					administrator = true
+				}
+
+				resource "corellium_v1team" "test" {
+					label = "test"
+					users = [
+						{
+							id = corellium_v1user.test.id
+						},
+					]
+				}
+
                 resource "corellium_v1project" "test" {
                     name = "test"
                     settings = {
@@ -152,7 +185,7 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                     users = []
                     teams = [
                         {
-                            id = "d1c3d32d-b46e-4ba3-8f31-2069fc5e80bc"
+                            id = corellium_v1team.test.id
                             role = "admin"
                         }
                     ]
@@ -168,13 +201,30 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "5"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "12288"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "users.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.0.id", "d1c3d32d-b46e-4ba3-8f31-2069fc5e80bc"),
+					resource.TestCheckResourceAttrSet("corellium_v1project.test", "teams.0.id"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.0.role", "admin"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "keys.#", "0"),
 				),
 			},
 			{
 				Config: providerConfig + `
+				resource "corellium_v1user" "test" {
+					label = "test"
+					name = "test"
+					email = "testing@testing.ai.moda"
+					password = "123"
+					administrator = true
+				}
+
+				resource "corellium_v1team" "test" {
+					label = "test"
+					users = [
+						{
+							id = corellium_v1user.test.id
+						},
+					]
+				}
+
                 resource "corellium_v1project" "test" {
                     name = "test"
                     settings = {
@@ -250,6 +300,14 @@ func TestAccCorelliumV1ProjectResource_users(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
+				resource "corellium_v1user" "test" {
+					label = "test"
+					name = "test"
+					email = "testing@testing.ai.moda"
+					password = "123"
+					administrator = true
+				}
+
                 resource "corellium_v1project" "test" {
                     name = "test"
                     settings = {
@@ -262,7 +320,7 @@ func TestAccCorelliumV1ProjectResource_users(t *testing.T) {
                     }
                     users = [
                         {
-                            id = "60d71152-8b86-4496-b27f-2e30f5bcc59f"
+                            id = corellium_v1user.test.id
                             role = "admin"
                         }
                     ]
@@ -278,7 +336,7 @@ func TestAccCorelliumV1ProjectResource_users(t *testing.T) {
 					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.cores", "1"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "2.5"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "6144"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "users.0.id", "60d71152-8b86-4496-b27f-2e30f5bcc59f"),
+					resource.TestCheckResourceAttrSet("corellium_v1project.test", "users.0.id"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "users.0.role", "admin"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.#", "0"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "keyss.#", "0"),
@@ -286,6 +344,14 @@ func TestAccCorelliumV1ProjectResource_users(t *testing.T) {
 			},
 			{
 				Config: providerConfig + `
+				resource "corellium_v1user" "test" {
+					label = "test"
+					name = "test"
+					email = "testing@testing.ai.moda"
+					password = "123"
+					administrator = true
+				}
+
                 resource "corellium_v1project" "test" {
                     name = "test"
                     settings = {
@@ -324,6 +390,23 @@ func TestAccCorelliumV1ProjectResource_teams(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
+				resource "corellium_v1user" "test" {
+					label = "test"
+					name = "test"
+					email = "testing@testing.ai.moda"
+					password = "123"
+					administrator = true
+				}
+
+				resource "corellium_v1team" "test" {
+					label = "test"
+					users = [
+						{
+							id = corellium_v1user.test.id
+						},
+					]
+				}
+
                 resource "corellium_v1project" "test" {
                     name = "test"
                     settings = {
@@ -337,7 +420,7 @@ func TestAccCorelliumV1ProjectResource_teams(t *testing.T) {
                     users = []
                     teams = [
                         {
-                            id = "d1c3d32d-b46e-4ba3-8f31-2069fc5e80bc"
+                            id = corellium_v1team.test.id
                             role = "admin"
                         }
                     ]
@@ -353,13 +436,30 @@ func TestAccCorelliumV1ProjectResource_teams(t *testing.T) {
 					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "2.5"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "6144"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "users.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.0.id", "d1c3d32d-b46e-4ba3-8f31-2069fc5e80bc"),
+					resource.TestCheckResourceAttrSet("corellium_v1project.test", "teams.0.id"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.0.role", "admin"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "keys.#", "0"),
 				),
 			},
 			{
 				Config: providerConfig + `
+				resource "corellium_v1user" "test" {
+					label = "test"
+					name = "test"
+					email = "testing@testing.ai.moda"
+					password = "123"
+					administrator = true
+				}
+
+				resource "corellium_v1team" "test" {
+					label = "test"
+					users = [
+						{
+							id = corellium_v1user.test.id
+						},
+					]
+				}
+
                 resource "corellium_v1project" "test" {
                     name = "test"
                     settings = {
