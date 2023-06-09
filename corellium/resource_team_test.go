@@ -22,15 +22,21 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 	}
 
 	resourceConfigOneUser := func(label string) string {
-		// 60d71152-8b86-4496-b27f-2e30f5bcc59f is the ID of Henry Barreto.
-		// TODO: create a user in the test and use its ID.
 		return fmt.Sprintf(
 			`
+		resource "corellium_v1user" "test" {
+			label = "test"
+			name = "test"
+			email = "testing@testing.ai.moda"
+			password = "123"
+			administrator = true
+		}
+
 		resource "corellium_v1team" "test" {
 			label = "%s"
 			users = [
 				{
-					id = "60d71152-8b86-4496-b27f-2e30f5bcc59f"
+					id = corellium_v1user.test.id
 				},
 			]
 		}
@@ -43,14 +49,30 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 		// TODO: create a user in the test and use its ID.
 		return fmt.Sprintf(
 			`
+		resource "corellium_v1user" "test" {
+			label = "test"
+			name = "test"
+			email = "testing@testing.ai.moda"
+			password = "123"
+			administrator = true
+		}
+
+		resource "corellium_v1user" "user" {
+			label = "user"
+			name = "user"
+			email = "user@testing.ai.moda"
+			password = "123"
+			administrator = false
+		}
+
 		resource "corellium_v1team" "test" {
 			label = "%s"
 			users = [
 				{
-					id = "60d71152-8b86-4496-b27f-2e30f5bcc59f"
+					id = corellium_v1user.test.id
 				},
                 {
-                    id = "b69db607-90f2-4d8f-8173-e5867f1d8cf4"
+                    id = corellium_v1user.user.id
                 }
 			]
 		}
@@ -61,6 +83,22 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 	resourceConfigEmptyUsers := func(label string) string {
 		return fmt.Sprintf(
 			`
+		resource "corellium_v1user" "test" {
+			label = "test"
+			name = "test"
+			email = "testing@testing.ai.moda"
+			password = "123"
+			administrator = true
+		}
+
+		resource "corellium_v1user" "user" {
+			label = "user"
+			name = "user"
+			email = "user@testing.ai.moda"
+			password = "123"
+			administrator = false
+		}
+
 		resource "corellium_v1team" "test" {
 			label = "%s"
 			users = []
@@ -120,13 +158,6 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("corellium_v1team.test", "label", "test_with_users_label_updated_again"),
 					resource.TestCheckResourceAttr("corellium_v1team.test", "users.#", "2"),
-				),
-			},
-			{
-				Config: providerConfig + resourceConfigWithoutUsers("test_without_users_again"),
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1team.test", "label", "test_without_users_again"),
-					resource.TestCheckResourceAttr("corellium_v1team.test", "users.#", "0"),
 				),
 			},
 		},
