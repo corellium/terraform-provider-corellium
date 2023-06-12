@@ -28,7 +28,7 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 			label = "test"
 			name = "test"
 			email = "testing@testing.ai.moda"
-			password = "123"
+			password = "%s"
 			administrator = true
 		}
 
@@ -40,7 +40,7 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 				},
 			]
 		}
-		`, label,
+		`, generatePassword(32, 4, 4, 4), label,
 		)
 	}
 
@@ -53,7 +53,7 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 			label = "test"
 			name = "test"
 			email = "testing@testing.ai.moda"
-			password = "123"
+			password = "%s"
 			administrator = true
 		}
 
@@ -61,7 +61,7 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 			label = "user"
 			name = "user"
 			email = "user@testing.ai.moda"
-			password = "123"
+			password = "%s"
 			administrator = false
 		}
 
@@ -76,7 +76,7 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
                 }
 			]
 		}
-		`, label,
+		`, generatePassword(32, 4, 4, 4), generatePassword(32, 4, 4, 4), label,
 		)
 	}
 
@@ -87,7 +87,7 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 			label = "test"
 			name = "test"
 			email = "testing@testing.ai.moda"
-			password = "123"
+			password = "%s"
 			administrator = true
 		}
 
@@ -95,7 +95,7 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 			label = "user"
 			name = "user"
 			email = "user@testing.ai.moda"
-			password = "123"
+			password = "%s"
 			administrator = false
 		}
 
@@ -103,7 +103,7 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 			label = "%s"
 			users = []
 		}
-		`, label,
+		`, generatePassword(32, 4, 4, 4), generatePassword(32, 4, 4, 4), label,
 		)
 	}
 

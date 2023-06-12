@@ -1,6 +1,7 @@
 package corellium
 
 import (
+	"fmt"
 	"regexp"
 	"testing"
 
@@ -72,12 +73,12 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: providerConfig + `
+				Config: providerConfig + fmt.Sprintf(`
 				resource "corellium_v1user" "test" {
 					label = "test"
 					name = "test"
 					email = "testing@testing.ai.moda"
-					password = "123"
+					password = "%s"
 					administrator = true
 				}
 
@@ -100,7 +101,7 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                     teams = []
 					keys = []
                 }
-                `,
+                `, generatePassword(32, 4, 4, 4)),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "2"),
@@ -116,12 +117,12 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: providerConfig + `
+				Config: providerConfig + fmt.Sprintf(`
 				resource "corellium_v1user" "test" {
 					label = "test"
 					name = "test"
 					email = "testing@testing.ai.moda"
-					password = "123"
+					password = "%s"
 					administrator = true
 				}
 
@@ -139,7 +140,7 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                     teams = []
 					keys = []
                 }
-                `,
+                `, generatePassword(32, 4, 4, 4)),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "2"),
@@ -154,12 +155,12 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: providerConfig + `
+				Config: providerConfig + fmt.Sprintf(`
 				resource "corellium_v1user" "test" {
 					label = "test"
 					name = "test"
 					email = "testing@testing.ai.moda"
-					password = "123"
+					password = "%s"
 					administrator = true
 				}
 
@@ -191,7 +192,7 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                     ]
 					keys = []
                 }
-                `,
+                `, generatePassword(32, 4, 4, 4)),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "2"),
@@ -207,12 +208,12 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
 				),
 			},
 			{
-				Config: providerConfig + `
+				Config: providerConfig + fmt.Sprintf(`
 				resource "corellium_v1user" "test" {
 					label = "test"
 					name = "test"
 					email = "testing@testing.ai.moda"
-					password = "123"
+					password = "%s"
 					administrator = true
 				}
 
@@ -239,7 +240,7 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                     teams = []
 					keys = []
                 }
-                `,
+                `, generatePassword(32, 4, 4, 4)),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "2"),
@@ -299,12 +300,12 @@ func TestAccCorelliumV1ProjectResource_users(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig + `
+				Config: providerConfig + fmt.Sprintf(`
 				resource "corellium_v1user" "test" {
 					label = "test"
 					name = "test"
 					email = "testing@testing.ai.moda"
-					password = "123"
+					password = "%s"
 					administrator = true
 				}
 
@@ -327,7 +328,7 @@ func TestAccCorelliumV1ProjectResource_users(t *testing.T) {
                     teams = []
 					keys = []
                 }
-                `,
+                `, generatePassword(32, 4, 4, 4)),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "1"),
@@ -343,12 +344,12 @@ func TestAccCorelliumV1ProjectResource_users(t *testing.T) {
 				),
 			},
 			{
-				Config: providerConfig + `
+				Config: providerConfig + fmt.Sprintf(`
 				resource "corellium_v1user" "test" {
 					label = "test"
 					name = "test"
 					email = "testing@testing.ai.moda"
-					password = "123"
+					password = "%s"
 					administrator = true
 				}
 
@@ -366,7 +367,7 @@ func TestAccCorelliumV1ProjectResource_users(t *testing.T) {
                     teams = []
 					keys = []
                 }
-                `,
+                `, generatePassword(32, 4, 4, 4)),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "1"),
@@ -389,12 +390,12 @@ func TestAccCorelliumV1ProjectResource_teams(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig + `
+				Config: providerConfig + fmt.Sprintf(`
 				resource "corellium_v1user" "test" {
 					label = "test"
 					name = "test"
 					email = "testing@testing.ai.moda"
-					password = "123"
+					password = "%s"
 					administrator = true
 				}
 
@@ -426,7 +427,7 @@ func TestAccCorelliumV1ProjectResource_teams(t *testing.T) {
                     ]
 					keys = []
                 }
-                `,
+                `, generatePassword(32, 4, 4, 4)),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "1"),
@@ -442,12 +443,12 @@ func TestAccCorelliumV1ProjectResource_teams(t *testing.T) {
 				),
 			},
 			{
-				Config: providerConfig + `
+				Config: providerConfig + fmt.Sprintf(`
 				resource "corellium_v1user" "test" {
 					label = "test"
 					name = "test"
 					email = "testing@testing.ai.moda"
-					password = "123"
+					password = "%s"
 					administrator = true
 				}
 
@@ -474,7 +475,7 @@ func TestAccCorelliumV1ProjectResource_teams(t *testing.T) {
                     teams = []
 					keys = []
                 }
-                `,
+                `, generatePassword(32, 4, 4, 4)),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
 					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "1"),
