@@ -442,6 +442,9 @@ func (d *CorelliumV1InstanceResource) Schema(_ context.Context, _ resource.Schem
 	}
 }
 
+// WaitForReadyTimeout is the default timeout for waiting for an instance to be ready.
+const WaitForReadyTimeout = 900
+
 // Create creates the resource and sets the initial Terraform state.
 func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan V1InstanceModel
@@ -525,7 +528,7 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 			MinTimeout: 5 * time.Second,
 			Timeout: func() time.Duration {
 				if plan.WaitForReadyTimeout.IsUnknown() {
-					return 300
+					return WaitForReadyTimeout
 				}
 
 				return time.Duration(plan.WaitForReadyTimeout.ValueInt64())
