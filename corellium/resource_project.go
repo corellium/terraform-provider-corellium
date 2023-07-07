@@ -371,6 +371,14 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
+	plan.Id = types.StringValue(created.GetId())
+
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	project, r, err := d.client.ProjectsApi.V1GetProject(auth, created.GetId()).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
@@ -396,15 +404,15 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 				b, err := io.ReadAll(r.Body)
 				if err != nil {
 					resp.Diagnostics.AddError(
-						"Error get the teams",
+						"Error get team with all users",
 						"Coudn't read the response body: "+err.Error(),
 					)
 					return
 				}
 
 				resp.Diagnostics.AddError(
-					"Error to get the teams",
-					"An unexpected error was encountered trying to create the team:\n\n"+string(b),
+					"Error to get the team with all users",
+					"An unexpected error was encountered trying to get the team with all users:\n\n"+string(b),
 				)
 				return
 			}
@@ -622,7 +630,7 @@ func (d *CorelliumV1ProjectResource) Read(ctx context.Context, req resource.Read
 				b, err := io.ReadAll(r.Body)
 				if err != nil {
 					resp.Diagnostics.AddError(
-						"Error get the teams",
+						"Error to get team with all users",
 						"Coudn't read the response body: "+err.Error(),
 					)
 					return
@@ -630,7 +638,7 @@ func (d *CorelliumV1ProjectResource) Read(ctx context.Context, req resource.Read
 
 				resp.Diagnostics.AddError(
 					"Error to get the teams",
-					"An unexpected error was encountered trying to create the team:\n\n"+string(b),
+					"An unexpected error was encountered trying to get the team with all users:\n\n"+string(b),
 				)
 				return
 			}
@@ -905,7 +913,7 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 
 					resp.Diagnostics.AddError(
 						"Error to get the teams",
-						"An unexpected error was encountered trying to create the team:\n\n"+string(b),
+						"An unexpected error was encountered trying to get the team with all users:\n\n"+string(b),
 					)
 					return
 				}

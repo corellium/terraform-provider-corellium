@@ -9,6 +9,8 @@ import (
 )
 
 func TestAccCorelliumV1WebPlayer(t *testing.T) {
+	t.Skip("The current enterprise account doesn't have WebPlayer enabled. It'll be fixed in the future.")
+
 	projectConfig := `
     resource "corellium_v1project" "test" {
         name = "test"
