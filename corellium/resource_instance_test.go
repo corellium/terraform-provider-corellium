@@ -103,19 +103,38 @@ func TestAccCorelliumV1InstanceResource_wait_for_ready(t *testing.T) {
 	})
 }
 
+func TestAccCorelliumV1InstanceResource_default_project(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfig + `
+                resource "corellium_v1instance" "test" {
+                    name = "test"
+                    flavor = "samsung-galaxy-s-duos"
+                    os = "13.0.0"
+                }
+                `,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("corellium_v1instance.test", "name", "test"),
+					resource.TestCheckResourceAttr("corellium_v1instance.test", "flavor", "samsung-galaxy-s-duos"),
+					resource.TestCheckResourceAttr("corellium_v1instance.test", "os", "13.0.0"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccCorelliumV1InstanceResource_non_enterprise(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfigNonEnterprise + `
-                data "corellium_v1projects" "test" {}
-
                 resource "corellium_v1instance" "test" {
                     name = "test"
                     flavor = "samsung-galaxy-s-duos"
                     os = "13.0.0"
-                    project = data.corellium_v1projects.test.projects[0].id
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
