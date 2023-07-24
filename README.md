@@ -12,7 +12,7 @@
 ![Terraform Registry release CI](https://github.com/aimoda/terraform-provider-corellium/actions/workflows/terraform-release.yml/badge.svg)
 ![Examples QA CI](https://github.com/aimoda/terraform-provider-corellium/actions/workflows/examples-qa.yml/badge.svg)
 
-The Corellium allows [Terraform](https://terraform.io) to manage [Corellium](https://www.corellium.com/) resources.
+The Corellium allows [Terraform](https://terraform.io) to manage [Corellium](https://www.corellium.com/?utm_source=github.com&utm_content=terraform-provider-corellium&utm_medium=github&utm_campaign=aimoda) resources.
 
 - Examples can be found in the [examples](examples/) directory.
 - Documentation can be found in the [docs](docs/) directory. At the same directory, you can find `demo.tf` file which contains all a small usage example.
