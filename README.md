@@ -8,7 +8,9 @@
 
 # Terraform Corellium Provider
 
-![build](https://github.com/aimoda/terraform-provider-corellium/actions/workflows/devcontainer-build.yml/badge.svg)
+![Acceptance Tests CI](https://github.com/aimoda/terraform-provider-corellium/actions/workflows/acceptance-tests.yml/badge.svg)
+![Terraform Registry release CI](https://github.com/aimoda/terraform-provider-corellium/actions/workflows/terraform-release.yml/badge.svg)
+![Examples QA CI](https://github.com/aimoda/terraform-provider-corellium/actions/workflows/examples-qa.yml/badge.svg)
 
 The Corellium allows [Terraform](https://terraform.io) to manage [Corellium](https://www.corellium.com/) resources.
 
@@ -67,3 +69,12 @@ resource "corellium_v1instance" "example" {
   os = "13.0.0"
 }
 ```
+
+<a href="https://www.ai.moda/en/?utm_source=github.com&utm_content=terraform-provider-corellium&utm_medium=github">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://terraform-provider-corellium.email.ai.moda/bimi/logo.svg?mode=dark">
+    <source media="(prefers-color-scheme: light)" srcset="https://terraform-provider-corellium.email.ai.moda/bimi/logo.svg?mode=light">
+    <img src="https://terraform-provider-corellium.email.ai.moda/bimi/logo.svg?mode=default" alt="ai.moda logo" title="ai.moda" align="right" height="50">
+  </picture>
+</a>
+
