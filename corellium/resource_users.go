@@ -94,6 +94,7 @@ func (d *CorelliumV1UserResource) Create(ctx context.Context, req resource.Creat
 		"name":          state.Name.ValueString(),
 		"label":         state.Label.ValueString(),
 		"email":         state.Email.ValueString(),
+		"password":      state.Password.ValueString(),
 		"administrator": state.Administrator.ValueBool(),
 	}
 
