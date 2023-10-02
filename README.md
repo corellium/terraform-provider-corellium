@@ -8,9 +8,9 @@
 
 # Terraform Corellium Provider
 
-![Acceptance Tests CI](https://github.com/aimoda/terraform-provider-corellium/actions/workflows/acceptance-tests.yml/badge.svg)
-![Terraform Registry release CI](https://github.com/aimoda/terraform-provider-corellium/actions/workflows/terraform-release.yml/badge.svg)
-![Examples QA CI](https://github.com/aimoda/terraform-provider-corellium/actions/workflows/examples-qa.yml/badge.svg)
+![Acceptance Tests CI](https://github.com/corellium/terraform-provider-corellium/actions/workflows/acceptance-tests.yml/badge.svg)
+![Terraform Registry release CI](https://github.com/corellium/terraform-provider-corellium/actions/workflows/terraform-release.yml/badge.svg)
+![Examples QA CI](https://github.com/corellium/terraform-provider-corellium/actions/workflows/examples-qa.yml/badge.svg)
 
 The Corellium allows [Terraform](https://terraform.io) to manage [Corellium](https://www.corellium.com/?utm_source=github.com&utm_content=terraform-provider-corellium&utm_medium=github&utm_campaign=aimoda) resources.
 
