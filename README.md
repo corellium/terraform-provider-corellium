@@ -33,7 +33,7 @@ This is a simple example of creating a project and multiple iOS versions at once
 terraform {
   required_providers {
     corellium = {
-      source  = "aimoda/corellium"
+      source  = "corellium/corellium"
       version = "0.0.2-alpha"
     }
   }
