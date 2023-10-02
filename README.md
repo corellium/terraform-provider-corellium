@@ -27,14 +27,14 @@ _**Please note:** If you believe you have found a security issue in the Terrafor
 
 ## Usage
 
-This is a simple example of creating a project and an instance for a user.
+This is a simple example of creating a project and multiple iOS versions at once.
 
 ```terraform
 terraform {
   required_providers {
     corellium = {
-      source = "aimoda/corellium"
-      version = "0.1.0"
+      source  = "aimoda/corellium"
+      version = "0.0.2-alpha"
     }
   }
 }
@@ -43,31 +43,44 @@ provider "corellium" {
   token = ""
 }
 
-resource "corellium_v1project" "example" {
-  name = "example"
+resource "corellium_v1project" "backtesting" {
+  name = "ios_backtesting"
   settings = {
-    version = 1
-    internet_access = true 
-    dhcp = true
+    version         = 1
+    internet_access = false
+    dhcp            = false
   }
   quotas = {
-    cores = 2
+    cores = 60
   }
-  users = [
-    {
-      id = "00000000-0000-0000-0000-000000000000"
-    },
-  ]
+  users = []
   teams = []
-  keys  = []
+  keys = []
 }
 
-resource "corellium_v1instance" "example" {
-  project = corellium_v1project.example.id
-  name = "student_instance"
-  flavor = "samsung-galaxy-s-duos"
-  os = "13.0.0"
+variable "ios_versions" {
+  default = ["16.0", "16.0.2", "16.0.3", "16.1", "16.1.1", "16.1.2", "16.2", "16.3", "16.3.1", "16.4"]
+  type    = set(string)
 }
+
+resource "corellium_v1instance" "test_instance" {
+  for_each = var.ios_versions
+  name     = "version_${each.key}"
+  flavor   = "iphone8plus"
+  project  = corellium_v1project.backtesting.id
+  os       = each.key
+}
+```
+
+Then, run:
+
+```sh
+CORELLIUM_API_TOKEN="YOUR.API_KEY_HERE" CORELLIUM_API_HOST="YOURDOMAIN.enterprise.corellium.com" terraform apply
+```
+
+To tear down everything that was created, run:
+```sh
+CORELLIUM_API_TOKEN="YOUR.API_KEY_HERE" CORELLIUM_API_HOST="YOURDOMAIN.enterprise.corellium.com" terraform destroy
 ```
 
 <a href="https://www.ai.moda/en/?utm_source=github.com&utm_content=terraform-provider-corellium&utm_medium=github">
