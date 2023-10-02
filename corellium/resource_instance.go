@@ -242,7 +242,8 @@ func (d *CorelliumV1InstanceResource) Schema(_ context.Context, _ resource.Schem
 			},
 			"project": schema.StringAttribute{
 				Description: "Instance project",
-				Required:    true,
+				Optional:    true,
+				Computed:    true,
 			},
 			"state": schema.StringAttribute{
 				Description: "Instance state",
@@ -455,9 +456,39 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
+	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
+
+	if plan.Project.IsNull() || plan.Project.IsUnknown() {
+		projects, r, err := d.client.ProjectsApi.V1GetProjects(auth).Execute()
+		if err != nil {
+			b, err := io.ReadAll(r.Body)
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Error get default project",
+					"Coudn't read the response body from project name check: "+err.Error(),
+				)
+				return
+			}
+
+			resp.Diagnostics.AddError(
+				"Error get default project",
+				"Couldn't get projects to create instance: "+string(b),
+			)
+			return
+		}
+
+		// Assuming that the default project is the first one in the list.
+		plan.Project = types.StringValue(projects[0].Id)
+
+		diags = resp.State.Set(ctx, plan)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+
 	i := corellium.NewInstanceCreateOptions(plan.Flavor.ValueString(), plan.Project.ValueString(), plan.OS.ValueString())
 	i.SetName(plan.Name.ValueString())
-	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	created, r, err := d.client.InstancesApi.V1CreateInstance(auth).InstanceCreateOptions(*i).Execute()
 	if err != nil {
 		if r.StatusCode == http.StatusForbidden {
