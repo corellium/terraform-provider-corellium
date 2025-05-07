@@ -1,7 +1,7 @@
 // module github.com/aimoda/terraform-provider-corellium
 module terraform-provider-corellium
 
-go 1.24
+go 1.24.3
 
 require (
 	github.com/aimoda/go-corellium-api-client v0.0.0-20230416012942-39f2f87fa661
