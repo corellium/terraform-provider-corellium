@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     corellium = {
-      source  = "github.com/aimoda/corellium"
+      source  = "corellium/corellium"
       version = "~> 1.0.0"
     }
   }
@@ -44,7 +44,8 @@ resource "corellium_instance" "example" {
   project                = corellium_project.example.id
   name                   = "example"
   flavor                 = "iphone6splus"
-  os                     = "13.6.1"
+  os_version             = "13.6.1"
+  os_build               = "17G80"
   wait_for_ready         = true
   wait_for_ready_timeout = 900
 

@@ -2,7 +2,6 @@ package corellium
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,8 +29,9 @@ func NewCorelliumWebPlayerResource() resource.Resource {
 
 // the resource implementation.
 type CorelliumWebPlayerResource struct {
-	client *corellium.CorelliumClient
-	host   string
+	client     *corellium.CorelliumClient
+	host       string
+	httpClient *http.Client
 }
 
 type WebPlayerDataModel struct {
@@ -339,7 +339,7 @@ func (d *CorelliumWebPlayerResource) Read(ctx context.Context, req resource.Read
 
 	var sessions []WebPlayerDataModelManual
 	var err error
-	sessions, err = GetWebPlayerManual(auth, "https://"+d.host+"/api", state.Identifier.ValueString())
+	sessions, err = GetWebPlayerManual(auth, d.httpClient, "https://"+d.host+"/api", state.Identifier.ValueString())
 
 	// session, r, err := d.client.WebPlayerApi.WebPlayerSessionInfo(auth, state.Identifier.ValueString()).Execute()
 	if err != nil {
@@ -448,6 +448,7 @@ func (d *CorelliumWebPlayerResource) Configure(_ context.Context, req resource.C
 	providerData := req.ProviderData.(*ProviderData)
 	d.client = providerData.Client
 	d.host = providerData.Host
+	d.httpClient = providerData.HTTPClient
 }
 
 // *******************************************************************************************************************************
@@ -488,11 +489,9 @@ type FeaturesManual struct {
 	Connect        bool `tfsdk:"connect"`
 }
 
-func GetWebPlayerManual(ctx context.Context, url string, sessionId string) ([]WebPlayerDataModelManual, error) {
-	client := &http.Client{
-		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}, // matches the provider's main API client.
-	}
-
+// client should be the provider's HTTP client so TLS verification matches the
+// main API client.
+func GetWebPlayerManual(ctx context.Context, client *http.Client, url string, sessionId string) ([]WebPlayerDataModelManual, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url+"/v1/webplayer/"+sessionId, nil)
 	if err != nil {
 		return nil, err

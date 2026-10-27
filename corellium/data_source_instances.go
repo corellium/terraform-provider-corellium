@@ -39,7 +39,7 @@ type V1InstancesDataSourceModel struct {
 
 // Metadata returns the data source type name.
 func (d *V1InstancesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_v1instances"
+	resp.TypeName = req.ProviderTypeName + "_instances"
 }
 
 // Schema defines the schema for the data source.

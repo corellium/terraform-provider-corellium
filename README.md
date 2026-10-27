@@ -8,6 +8,7 @@
 
 # Terraform Corellium Provider
 
+![Unit Tests CI](https://github.com/corellium/terraform-provider-corellium/actions/workflows/unit-tests.yml/badge.svg)
 ![Acceptance Tests CI](https://github.com/corellium/terraform-provider-corellium/actions/workflows/acceptance-tests.yml/badge.svg)
 ![Terraform Registry release CI](https://github.com/corellium/terraform-provider-corellium/actions/workflows/terraform-release.yml/badge.svg)
 ![Examples QA CI](https://github.com/corellium/terraform-provider-corellium/actions/workflows/examples-qa.yml/badge.svg)
@@ -21,9 +22,9 @@ _**Please note:** If you believe you have found a security issue in the Terrafor
 
 ## Requirements
 
-- [Terraform](https://www.terraform.io/downloads.html) 0.13.x or higher
+- [Terraform](https://www.terraform.io/downloads.html) 1.0 or higher
 
-- [Go](https://golang.org/doc/install) 1.25.x (if you want to build the provider plugin)
+- [Go](https://golang.org/doc/install) 1.24.x (if you want to build the provider plugin)
 
 ## Quick Start
 
@@ -59,7 +60,7 @@ provider "corellium" {
 }
 ```
 
-And set the environment variable in your termianl
+And set the environment variable in your terminal
 
 Linux:
 

@@ -11,10 +11,10 @@ import (
 func testAccCorelliumV1RolesDataSourceConfig() string {
 	return fmt.Sprintf(
 		`
-		data "corellium_v1roles" "test" { }
+		data "corellium_roles" "test" { }
 
 		output "roles" {
-			value = data.corellium_v1roles.test.roles
+			value = data.corellium_roles.test.roles
 		}
 		`,
 	)
@@ -23,12 +23,12 @@ func testAccCorelliumV1RolesDataSourceConfig() string {
 func testAccCorelliumV1RolesDataSourceConfigWithProject(project string) string {
 	return fmt.Sprintf(
 		`
-		data "corellium_v1roles" "test" {
+		data "corellium_roles" "test" {
 			project = "%s"
 		}
 
 		output "roles" {
-			value = data.corellium_v1roles.test.roles
+			value = data.corellium_roles.test.roles
 		}
 		`, project,
 	)
@@ -41,20 +41,20 @@ func TestAccCorelliumV1RolesDataSource(t *testing.T) {
 			{
 				Config: providerConfig + testAccCorelliumV1RolesDataSourceConfig(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.corellium_v1roles.test", "roles.#"),
+					resource.TestCheckResourceAttrSet("data.corellium_roles.test", "roles.#"),
 				),
 			},
 			{
 				Config: providerConfig + testAccCorelliumV1RolesDataSourceConfigWithProject("fa79475c-2703-4ccc-bc17-1876c2593ec6"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.corellium_v1roles.test", "roles.#"),
-                    resource.TestCheckResourceAttrSet("data.corellium_v1roles.test", "roles.0.project"),
+					resource.TestCheckResourceAttrSet("data.corellium_roles.test", "roles.#"),
+					resource.TestCheckResourceAttrSet("data.corellium_roles.test", "roles.0.project"),
 				),
 			},
 			{
 				Config: providerConfig + testAccCorelliumV1RolesDataSourceConfigWithProject("invalid or unknown"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.corellium_v1roles.test", "roles.#"),
+					resource.TestCheckResourceAttrSet("data.corellium_roles.test", "roles.#"),
 				),
 			},
 		},

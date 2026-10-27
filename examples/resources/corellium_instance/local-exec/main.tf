@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     corellium = {
-      source  = "github.com/aimoda/corellium"
+      source  = "corellium/corellium"
       version = "~> 1.0.0"
     }
   }
@@ -30,10 +30,11 @@ resource "corellium_project" "example" {
 }
 
 resource "corellium_instance" "example" {
-  project = corellium_project.example.id
-  name    = "example"
-  flavor  = "iphone7plus"
-  os      = "15.7.5"
+  project    = corellium_project.example.id
+  name       = "example"
+  flavor     = "iphone7plus"
+  os_version = "15.7.5"
+  os_build   = "19H332"
 
   provisioner "local-exec" {
     command = "uptime"

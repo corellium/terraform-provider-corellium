@@ -18,7 +18,7 @@ terraform {
     # https://developer.hashicorp.com/terraform/language/settings#specifying-provider-requirements
     # https://developer.hashicorp.com/terraform/language/providers/requirements#requiring-providers
     corellium = {
-      source = "github.com/aimoda/corellium"
+      source = "corellium/corellium"
       # The global source address for the provider you intend to use, such as hashicorp/aws.
       #
       # https://developer.hashicorp.com/terraform/language/providers/requirements#source
@@ -134,6 +134,7 @@ resource "corellium_instance" "demo" {
   project = corellium_project.demo.id
   name    = "demo"
   # The flavor "samsung-galaxy-s-duos" is a Samsung Galaxy S Duos (GT-S7562) device and require 2 cores at least.
-  flavor = "samsung-galaxy-s-duos"
-  os     = "13.0.0"
+  flavor     = "samsung-galaxy-s-duos"
+  os_version = "13.0.0"
+  os_build   = ""
 }

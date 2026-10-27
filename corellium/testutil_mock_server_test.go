@@ -11,10 +11,10 @@ import (
 // mockAPIServer is a local stand-in for the Corellium API used by unit
 // tests. It serves TLS (self-signed) because the generated API client
 // hardcodes the "https" scheme and only the host is overridable via the
-// provider's "host" configuration attribute. The API client falls back to
-// http.DefaultClient when no HTTPClient is configured, so newMockAPIServer
-// swaps http.DefaultClient for one that trusts the test certificate,
-// avoiding any production code changes.
+// provider's "host" configuration attribute. Outside -debug the provider
+// uses http.DefaultClient (read when it is configured) for all requests, so
+// newMockAPIServer swaps http.DefaultClient for one that trusts the test
+// certificate, avoiding any production code changes.
 //
 // All unit tests must configure the provider with the same literal token
 // value (e.g. token = ""), matching the existing acceptance test
@@ -29,7 +29,7 @@ type mockAPIServer struct {
 
 // newMockAPIServer starts a local TLS server pre-registered with a
 // GET /api/v3/ready route (used by the provider's Configure readiness
-// check and by the corellium_v1ready data source) and returns it ready
+// check and by the corellium_ready data source) and returns it ready
 // for additional routes to be registered via handle. All routes must
 // include the "/api" prefix baked into the generated client's server
 // URL template.

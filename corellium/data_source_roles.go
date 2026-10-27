@@ -57,10 +57,10 @@ type V1RolesModel struct {
 
 // Metadata returns the data source type name.
 func (d *V1RolesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_v1roles"
+	resp.TypeName = req.ProviderTypeName + "_roles"
 	// TypeName is the name of the data resource type, which must be unique within the provider.
 	// This is used to identify the data resource type in state and plan files.
-	// i.e: data corellium_v1roles "roles" { ... }
+	// i.e: data corellium_roles "roles" { ... }
 }
 
 // Schema defines the schema for the data source.

@@ -35,7 +35,7 @@ type V1ReadyModel struct {
 
 // Metadata returns the data source type name.
 func (d *V1ReadyDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_v1ready"
+	resp.TypeName = req.ProviderTypeName + "_ready"
 }
 
 // Schema defines the schema for the data source.

@@ -9,7 +9,7 @@ import (
 )
 
 // TestUnitCorelliumV1SupportedModelsDataSource exercises the
-// corellium_v1supportedmodels data source against a mock API server, with
+// corellium_supportedmodels data source against a mock API server, with
 // no TF_ACC, live token, or network egress beyond loopback.
 func TestUnitCorelliumV1SupportedModelsDataSource(t *testing.T) {
 	srv := newMockAPIServer(t)
@@ -70,16 +70,16 @@ func TestUnitCorelliumV1SupportedModelsDataSource(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
-                data "corellium_v1supportedmodels" "test" {}
+                data "corellium_supportedmodels" "test" {}
                 `,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.corellium_v1supportedmodels.test", "id"),
-					resource.TestCheckResourceAttr("data.corellium_v1supportedmodels.test", "supported_models.#", "1"),
-					resource.TestCheckResourceAttr("data.corellium_v1supportedmodels.test", "supported_models.0.type", "iphone"),
-					resource.TestCheckResourceAttr("data.corellium_v1supportedmodels.test", "supported_models.0.model", "N66AP"),
-					resource.TestCheckResourceAttr("data.corellium_v1supportedmodels.test", "supported_models.0.flavor", "iphone7plus"),
-					resource.TestCheckResourceAttr("data.corellium_v1supportedmodels.test", "supported_models.0.cp_id", "32777"),
-					resource.TestCheckResourceAttr("data.corellium_v1supportedmodels.test", "supported_models.0.bd_id", "6"),
+					resource.TestCheckResourceAttrSet("data.corellium_supportedmodels.test", "id"),
+					resource.TestCheckResourceAttr("data.corellium_supportedmodels.test", "supported_models.#", "1"),
+					resource.TestCheckResourceAttr("data.corellium_supportedmodels.test", "supported_models.0.type", "iphone"),
+					resource.TestCheckResourceAttr("data.corellium_supportedmodels.test", "supported_models.0.model", "N66AP"),
+					resource.TestCheckResourceAttr("data.corellium_supportedmodels.test", "supported_models.0.flavor", "iphone7plus"),
+					resource.TestCheckResourceAttr("data.corellium_supportedmodels.test", "supported_models.0.cp_id", "32777"),
+					resource.TestCheckResourceAttr("data.corellium_supportedmodels.test", "supported_models.0.bd_id", "6"),
 				),
 			},
 		},

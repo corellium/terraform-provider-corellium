@@ -7,7 +7,8 @@ resource "corellium_instance" "example" {
   name = "example"
   flavor = "iphone7plus"
   project = "00000000-0000-4000-0000-000000000000"
-  os = "15.7.5"
+  os_version = "15.7.5"
+  os_build = "19H332"
 }
 ```
 
@@ -67,7 +68,9 @@ resource "corellium_instance" "example" {
   - iphone13p
   - iphone13pm
 
-- `os` (string) - The OS version of the instance.
+- `os_version` (string) - The OS version to install, e.g. "15.7.5". Available versions are listed by the `corellium_modelsoftware` data source.
+
+- `os_build` (string) - The exact OS build to install, e.g. "19H332". Set it to "" to use the newest build of `os_version`.
 
 ### Optional
 
@@ -115,7 +118,9 @@ resource "corellium_instance" "example" {
 
 - `fwpackage` (string) - The firmware package of the instance.
 
-- `os` (string) - The OS version of the instance.
+- `os_version` (string) - The OS version of the instance.
+
+- `os_build` (string) - The OS build of the instance.
 
 - `agent` (object of `agent`) - The agent of the instance.
 

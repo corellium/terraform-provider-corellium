@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-// TestUnitCorelliumV1RolesDataSource exercises the corellium_v1roles data
+// TestUnitCorelliumV1RolesDataSource exercises the corellium_roles data
 // source against a mock API server, with no TF_ACC, live token, or
 // network egress beyond loopback.
 func TestUnitCorelliumV1RolesDataSource(t *testing.T) {
@@ -35,14 +35,14 @@ func TestUnitCorelliumV1RolesDataSource(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
-                data "corellium_v1roles" "test" {}
+                data "corellium_roles" "test" {}
                 `,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.corellium_v1roles.test", "id"),
-					resource.TestCheckResourceAttr("data.corellium_v1roles.test", "roles.#", "1"),
-					resource.TestCheckResourceAttr("data.corellium_v1roles.test", "roles.0.role", "admin"),
-					resource.TestCheckResourceAttr("data.corellium_v1roles.test", "roles.0.project", "11111111-1111-1111-1111-111111111111"),
-					resource.TestCheckResourceAttr("data.corellium_v1roles.test", "roles.0.user", "22222222-2222-2222-2222-222222222222"),
+					resource.TestCheckResourceAttrSet("data.corellium_roles.test", "id"),
+					resource.TestCheckResourceAttr("data.corellium_roles.test", "roles.#", "1"),
+					resource.TestCheckResourceAttr("data.corellium_roles.test", "roles.0.role", "admin"),
+					resource.TestCheckResourceAttr("data.corellium_roles.test", "roles.0.project", "11111111-1111-1111-1111-111111111111"),
+					resource.TestCheckResourceAttr("data.corellium_roles.test", "roles.0.user", "22222222-2222-2222-2222-222222222222"),
 				),
 			},
 		},

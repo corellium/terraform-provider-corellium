@@ -87,14 +87,14 @@ func TestAccCorelliumV1ImageResource_non_enterprise(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfigNonEnterprise + `
-                data "corellium_v1projects" "test" {}
+                data "corellium_projects" "test" {}
 
                 resource "corellium_image" "test" {
                     name = "test"
                     type = "backup"
                     filename = "/tmp/image.txt"
                     encapsulated = false
-                    project = data.corellium_v1projects.test.projects[0].id
+                    project = data.corellium_projects.test.projects[0].id
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(

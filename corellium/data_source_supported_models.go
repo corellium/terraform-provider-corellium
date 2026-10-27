@@ -56,7 +56,7 @@ type V1SupportModelsModel struct {
 
 // Metadata returns the data source type name.
 func (d *V1SupportedModelsDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_v1supportedmodels"
+	resp.TypeName = req.ProviderTypeName + "_supportedmodels"
 }
 
 // Schema defines the schema for the data source.
@@ -142,7 +142,7 @@ func (d *V1SupportedModelsDataSource) Read(ctx context.Context, req datasource.R
 	// Map response body to model
 	for _, model := range models {
 		modelState := V1SupportModelsModel{
-			Type:        types.StringValue(model.GetType()),
+			Type: types.StringValue(model.GetType()),
 			//Name:        types.StringValue(model.GetName()),
 			Model:       types.StringValue(model.GetModel()),
 			Flavor:      types.StringValue(model.GetFlavor()),

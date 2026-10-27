@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-// TestUnitCorelliumV1ProjectsDataSource exercises the corellium_v1projects
+// TestUnitCorelliumV1ProjectsDataSource exercises the corellium_projects
 // data source against a mock API server, with no TF_ACC, live token, or
 // network egress beyond loopback.
 func TestUnitCorelliumV1ProjectsDataSource(t *testing.T) {
@@ -70,17 +70,17 @@ func TestUnitCorelliumV1ProjectsDataSource(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
-                data "corellium_v1projects" "test" {}
+                data "corellium_projects" "test" {}
                 `,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.corellium_v1projects.test", "id"),
-					resource.TestCheckResourceAttr("data.corellium_v1projects.test", "projects.#", "1"),
-					resource.TestCheckResourceAttr("data.corellium_v1projects.test", "projects.0.id", projectID),
-					resource.TestCheckResourceAttr("data.corellium_v1projects.test", "projects.0.name", "test"),
-					resource.TestCheckResourceAttr("data.corellium_v1projects.test", "projects.0.settings.version", "1"),
-					resource.TestCheckResourceAttr("data.corellium_v1projects.test", "projects.0.quotas.cores", "2"),
-					resource.TestCheckResourceAttr("data.corellium_v1projects.test", "projects.0.keys.#", "1"),
-					resource.TestCheckResourceAttr("data.corellium_v1projects.test", "projects.0.keys.0.kind", "ssh"),
+					resource.TestCheckResourceAttrSet("data.corellium_projects.test", "id"),
+					resource.TestCheckResourceAttr("data.corellium_projects.test", "projects.#", "1"),
+					resource.TestCheckResourceAttr("data.corellium_projects.test", "projects.0.id", projectID),
+					resource.TestCheckResourceAttr("data.corellium_projects.test", "projects.0.name", "test"),
+					resource.TestCheckResourceAttr("data.corellium_projects.test", "projects.0.settings.version", "1"),
+					resource.TestCheckResourceAttr("data.corellium_projects.test", "projects.0.quotas.cores", "2"),
+					resource.TestCheckResourceAttr("data.corellium_projects.test", "projects.0.keys.#", "1"),
+					resource.TestCheckResourceAttr("data.corellium_projects.test", "projects.0.keys.0.kind", "ssh"),
 				),
 			},
 		},

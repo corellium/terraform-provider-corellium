@@ -1,9 +1,9 @@
-# corellium_v1ready
+# corellium_ready
 
 ## Example
 
 ```terraform
-data "corellium_v1ready" "example" {}
+data "corellium_ready" "example" {}
 ```
 
 ## Schema

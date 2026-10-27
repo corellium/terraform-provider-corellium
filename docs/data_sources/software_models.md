@@ -1,9 +1,9 @@
-# corellum_v1modelsoftware
+# corellium_modelsoftware
 
 ## Example Usage
 
 ```terraform
-data "corellium_v1modelsoftware" "example" {
+data "corellium_modelsoftware" "example" {
   model = "iPhone15,3"
 }
 ```

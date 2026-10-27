@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     corellium = {
-      source  = "github.com/aimoda/corellium"
+      source  = "corellium/corellium"
       version = "~> 1.0.0"
     }
   }
@@ -30,10 +30,11 @@ resource "corellium_project" "example" {
 }
 
 resource "corellium_instance" "example" {
-  name    = "example"
-  flavor  = "ranchu"
-  project = corellium_project.example.id
-  os      = "7.1.2"
+  name       = "example"
+  flavor     = "ranchu"
+  project    = corellium_project.example.id
+  os_version = "7.1.2"
+  os_build   = ""
 }
 
 resource "corellium_webplayer" "example" {

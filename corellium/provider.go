@@ -3,10 +3,10 @@ package corellium
 import (
 	"context"
 	"crypto/tls"
+	"flag"
 	"fmt"
 	"net/http"
 	"os"
-	"flag"
 
 	"terraform-provider-corellium/corellium/pkg/api"
 
@@ -21,8 +21,8 @@ import (
 
 // Ensure the implementation satisfies the expected interfaces
 var (
-	_ provider.Provider = &corelliumProvider{}
-	Debug = flag.Bool("debug", false, "set to true to run the provider with support for debuggers like delve")
+	_     provider.Provider = &corelliumProvider{}
+	Debug                   = flag.Bool("debug", false, "set to true to run the provider with support for debuggers like delve")
 )
 
 // New is a helper function to simplify provider server and testing implementation.
@@ -37,10 +37,12 @@ type corelliumProvider struct{}
 // resp.ResourceData/resp.DataSourceData. It carries the configured API
 // client alongside the resolved host, since some endpoints aren't yet
 // exposed through the generated client and must build their own request
-// URL from the configured host instead of a hardcoded value.
+// URL from the configured host instead of a hardcoded value. Those requests
+// must use HTTPClient so they get the same TLS settings as Client.
 type ProviderData struct {
-	Client *corellium.CorelliumClient
-	Host   string
+	Client     *corellium.CorelliumClient
+	Host       string
+	HTTPClient *http.Client
 }
 
 // hashicupsProviderModel maps provider schema data to a Go type.
@@ -151,13 +153,15 @@ func (p *corelliumProvider) Configure(ctx context.Context, req provider.Configur
 	configuration := corellium.NewConfiguration()
 	configuration.Host = host
 
-	if(*Debug){
+	// Certificate verification is only skipped when running under -debug.
+	httpClient := http.DefaultClient
+	if *Debug {
 		tr := &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // Bypasses the strict check
 		}
-		httpClient := &http.Client{Transport: tr}
-		configuration.HTTPClient = httpClient
+		httpClient = &http.Client{Transport: tr}
 	}
+	configuration.HTTPClient = httpClient
 
 	client := corellium.NewCorelliumClient(configuration)
 	r, err := client.Status.Ready(ctx).Execute()
@@ -173,8 +177,9 @@ func (p *corelliumProvider) Configure(ctx context.Context, req provider.Configur
 	}
 
 	providerData := &ProviderData{
-		Client: client,
-		Host:   host,
+		Client:     client,
+		Host:       host,
+		HTTPClient: httpClient,
 	}
 
 	resp.DataSourceData = providerData

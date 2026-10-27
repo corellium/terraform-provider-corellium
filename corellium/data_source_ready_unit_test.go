@@ -25,11 +25,11 @@ func TestUnitCorelliumV1ReadyDataSource(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
-                data "corellium_v1ready" "test" {}
+                data "corellium_ready" "test" {}
                 `,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.corellium_v1ready.test", "id"),
-					resource.TestCheckResourceAttrSet("data.corellium_v1ready.test", "status"),
+					resource.TestCheckResourceAttrSet("data.corellium_ready.test", "id"),
+					resource.TestCheckResourceAttrSet("data.corellium_ready.test", "status"),
 				),
 			},
 		},

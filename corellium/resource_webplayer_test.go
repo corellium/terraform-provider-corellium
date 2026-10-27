@@ -33,7 +33,8 @@ func TestAccCorelliumV1WebPlayer(t *testing.T) {
         name = "test"
         flavor = "iphone7plus"
         project = corellium_project.test.id
-        os = "15.7.5"
+        os_version = "15.7.5"
+        os_build = "19H332"
         wait_for_ready = false 
     }
     `
@@ -114,17 +115,18 @@ func TestAccCorelliumV1WebPlayer_non_enterprise(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfigNonEnterprise + `
-                data "corellium_v1projects" "test" {}
+                data "corellium_projects" "test" {}
 
                 resource "corellium_instance" "test" {
                     name = "test"
                     flavor = "samsung-galaxy-s-duos"
-                    os = "13.0.0"
-                    project = data.corellium_v1projects.test.projects[0].id
+                    os_version = "13.0.0"
+                    os_build = ""
+                    project = data.corellium_projects.test.projects[0].id
                 }
 
                 resource "corellium_webplayer" "test" {
-                    project = data.corellium_v1projects.test.projects[0].id
+                    project = data.corellium_projects.test.projects[0].id
                     instanceid = corellium_instance.test.id
                     expiresinseconds = 0
                     features = {

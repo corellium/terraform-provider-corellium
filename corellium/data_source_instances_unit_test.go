@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-// TestUnitCorelliumV1InstancesDataSource exercises the corellium_v1instances
+// TestUnitCorelliumV1InstancesDataSource exercises the corellium_instances
 // data source against a mock API server, with no TF_ACC, live token, or
 // network egress beyond loopback.
 func TestUnitCorelliumV1InstancesDataSource(t *testing.T) {
@@ -49,14 +49,14 @@ func TestUnitCorelliumV1InstancesDataSource(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
-                data "corellium_v1instances" "test" {}
+                data "corellium_instances" "test" {}
                 `,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.corellium_v1instances.test", "id"),
-					resource.TestCheckResourceAttr("data.corellium_v1instances.test", "instances.#", "1"),
-					resource.TestCheckResourceAttr("data.corellium_v1instances.test", "instances.0.name", "test"),
-					resource.TestCheckResourceAttr("data.corellium_v1instances.test", "instances.0.flavor", "iphone7plus"),
-					resource.TestCheckResourceAttr("data.corellium_v1instances.test", "instances.0.state", "on"),
+					resource.TestCheckResourceAttrSet("data.corellium_instances.test", "id"),
+					resource.TestCheckResourceAttr("data.corellium_instances.test", "instances.#", "1"),
+					resource.TestCheckResourceAttr("data.corellium_instances.test", "instances.0.name", "test"),
+					resource.TestCheckResourceAttr("data.corellium_instances.test", "instances.0.flavor", "iphone7plus"),
+					resource.TestCheckResourceAttr("data.corellium_instances.test", "instances.0.state", "on"),
 				),
 			},
 		},

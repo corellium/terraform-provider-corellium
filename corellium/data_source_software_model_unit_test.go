@@ -9,7 +9,7 @@ import (
 )
 
 // TestUnitCorelliumV1SofwareDataSource exercises the
-// corellium_v1modelsoftware data source against a mock API server. This
+// corellium_modelsoftware data source against a mock API server. This
 // data source bypasses the generated client and builds its own request
 // from the provider's configured host (see V1GetModelSoftwareManual in
 // data_source_software_model.go), so this test also guards against that
@@ -47,16 +47,16 @@ func TestUnitCorelliumV1SofwareDataSource(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
-                data "corellium_v1modelsoftware" "test" {
+                data "corellium_modelsoftware" "test" {
                     model = "iphone7plus"
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.corellium_v1modelsoftware.test", "id"),
-					resource.TestCheckResourceAttr("data.corellium_v1modelsoftware.test", "model_software.#", "1"),
-					resource.TestCheckResourceAttr("data.corellium_v1modelsoftware.test", "model_software.0.build_id", "19H384"),
-					resource.TestCheckResourceAttr("data.corellium_v1modelsoftware.test", "model_software.0.version", "15.7.5"),
-					resource.TestCheckResourceAttr("data.corellium_v1modelsoftware.test", "model_software.0.size", "123456789"),
+					resource.TestCheckResourceAttrSet("data.corellium_modelsoftware.test", "id"),
+					resource.TestCheckResourceAttr("data.corellium_modelsoftware.test", "model_software.#", "1"),
+					resource.TestCheckResourceAttr("data.corellium_modelsoftware.test", "model_software.0.build_id", "19H384"),
+					resource.TestCheckResourceAttr("data.corellium_modelsoftware.test", "model_software.0.version", "15.7.5"),
+					resource.TestCheckResourceAttr("data.corellium_modelsoftware.test", "model_software.0.size", "123456789"),
 				),
 			},
 		},

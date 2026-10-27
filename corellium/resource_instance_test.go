@@ -33,13 +33,14 @@ func TestAccCorelliumV1InstanceResource_basic(t *testing.T) {
                     name = "test"
                     flavor = "iphone7plus"
                     project = corellium_project.test.id
-                    os = "15.7.5"
+                    os_version = "15.7.5"
+                    os_build = "19H332"
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("corellium_instance.test", "name", "test"),
 					resource.TestCheckResourceAttr("corellium_instance.test", "flavor", "iphone7plus"),
-					resource.TestCheckResourceAttr("corellium_instance.test", "os", "15.7.5"),
+					resource.TestCheckResourceAttr("corellium_instance.test", "os_version", "15.7.5"),
 				),
 			},
 			{
@@ -48,13 +49,14 @@ func TestAccCorelliumV1InstanceResource_basic(t *testing.T) {
                     name = "test_update"
                     flavor = "iphone7plus"
                     project = corellium_project.test.id
-                    os = "15.7.5"
+                    os_version = "15.7.5"
+                    os_build = "19H332"
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("corellium_instance.test", "name", "test_update"),
 					resource.TestCheckResourceAttr("corellium_instance.test", "flavor", "iphone7plus"),
-					resource.TestCheckResourceAttr("corellium_instance.test", "os", "15.7.5"),
+					resource.TestCheckResourceAttr("corellium_instance.test", "os_version", "15.7.5"),
 				),
 			},
 		},
@@ -88,7 +90,8 @@ func TestAccCorelliumV1InstanceResource_wait_for_ready(t *testing.T) {
                     name = "test"
                     flavor = "samsung-galaxy-s-duos"
                     project = corellium_project.test.id
-                    os = "13.0.0"
+                    os_version = "13.0.0"
+                    os_build = ""
                     wait_for_ready = true
                     wait_for_ready_timeout = 600
                 }
@@ -96,7 +99,7 @@ func TestAccCorelliumV1InstanceResource_wait_for_ready(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("corellium_instance.test", "name", "test"),
 					resource.TestCheckResourceAttr("corellium_instance.test", "flavor", "samsung-galaxy-s-duos"),
-					resource.TestCheckResourceAttr("corellium_instance.test", "os", "13.0.0"),
+					resource.TestCheckResourceAttr("corellium_instance.test", "os_version", "13.0.0"),
 				),
 			},
 		},
@@ -112,13 +115,14 @@ func TestAccCorelliumV1InstanceResource_default_project(t *testing.T) {
                 resource "corellium_instance" "test" {
                     name = "test"
                     flavor = "samsung-galaxy-s-duos"
-                    os = "13.0.0"
+                    os_version = "13.0.0"
+                    os_build = ""
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("corellium_instance.test", "name", "test"),
 					resource.TestCheckResourceAttr("corellium_instance.test", "flavor", "samsung-galaxy-s-duos"),
-					resource.TestCheckResourceAttr("corellium_instance.test", "os", "13.0.0"),
+					resource.TestCheckResourceAttr("corellium_instance.test", "os_version", "13.0.0"),
 				),
 			},
 		},
@@ -134,13 +138,14 @@ func TestAccCorelliumV1InstanceResource_non_enterprise(t *testing.T) {
                 resource "corellium_instance" "test" {
                     name = "test"
                     flavor = "samsung-galaxy-s-duos"
-                    os = "13.0.0"
+                    os_version = "13.0.0"
+                    os_build = ""
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("corellium_instance.test", "name", "test"),
 					resource.TestCheckResourceAttr("corellium_instance.test", "flavor", "samsung-galaxy-s-duos"),
-					resource.TestCheckResourceAttr("corellium_instance.test", "os", "13.0.0"),
+					resource.TestCheckResourceAttr("corellium_instance.test", "os_version", "13.0.0"),
 				),
 			},
 		},

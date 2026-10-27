@@ -2,7 +2,6 @@ package corellium
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -31,8 +30,9 @@ func NewCorelliumV1ModelSoftwareDataSource() datasource.DataSource {
 
 // corelliumDataSource is the data source implementation.
 type V1ModelSoftwareDataSource struct {
-	client *corellium.CorelliumClient
-	host   string
+	client     *corellium.CorelliumClient
+	host       string
+	httpClient *http.Client
 }
 
 type V1SoftwareDataSourceModel struct {
@@ -67,7 +67,7 @@ type V1SoftwareModel struct {
 
 // Metadata returns the data source type name.
 func (d *V1ModelSoftwareDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_v1modelsoftware"
+	resp.TypeName = req.ProviderTypeName + "_modelsoftware"
 }
 
 // Schema defines the schema for the data source.
@@ -161,7 +161,7 @@ func (d *V1ModelSoftwareDataSource) Read(ctx context.Context, req datasource.Rea
 	// software, _, err := d.client.ModelsApi.V1GetModelSoftware(auth, state.Model.ValueString()).Execute()
 	// Replace apiUrl with the actual API URL. Workaround for endpoint.
 	url := strings.Join([]string{"https://", d.host, "/api"}, "")
-	customSoftware, err := V1GetModelSoftwareManual(auth, url, state.Model.ValueString())
+	customSoftware, err := V1GetModelSoftwareManual(auth, d.httpClient, url, state.Model.ValueString())
 	// if err != nil && software != nil {
 	// 	resp.Diagnostics.AddError(
 	// 		"Error getting model software for model: "+state.Model.ValueString()+" Build ID: "+software[0].GetBuildid(),
@@ -233,6 +233,7 @@ func (d *V1ModelSoftwareDataSource) Configure(_ context.Context, req datasource.
 	providerData := req.ProviderData.(*ProviderData)
 	d.client = providerData.Client
 	d.host = providerData.Host
+	d.httpClient = providerData.HTTPClient
 }
 
 type CustomFirmware struct {
@@ -259,11 +260,9 @@ type CustomFirmware struct {
 // }
 
 // Workaround for Corellium ModelsAPI. This API is not currently working as expected. (returning values such as Size that are larger than Int32 can handle)
-func V1GetModelSoftwareManual(ctx context.Context, url string, model string) ([]CustomFirmware, error) {
-	client := &http.Client{
-		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}, // matches the provider's main API client.
-	}
-
+// client should be the provider's HTTP client so TLS verification matches the
+// main API client.
+func V1GetModelSoftwareManual(ctx context.Context, client *http.Client, url string, model string) ([]CustomFirmware, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url+"/v1/models/"+model+"/software", nil)
 	if err != nil {
 		return nil, err
