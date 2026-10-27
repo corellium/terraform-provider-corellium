@@ -4,14 +4,15 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/aimoda/go-corellium-api-client"
+	"terraform-provider-corellium/corellium/pkg/api"
+
+	corellium "github.com/corellium/corellium-go-api-client"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -27,13 +28,13 @@ func NewCorelliumV1InstancesSource() datasource.DataSource {
 
 // V1InstancesDataSource is the data source implementation.
 type V1InstancesDataSource struct {
-	client *corellium.APIClient
+	client *corellium.CorelliumClient
 }
 
 // V1InstancesDataSourceModel maps the data source schema data.
 type V1InstancesDataSourceModel struct {
-	Id        types.String      `tfsdk:"id"`
-	Instances []V1InstanceModel `tfsdk:"instances"`
+	Id        types.String    `tfsdk:"id"`
+	Instances []InstanceModel `tfsdk:"instances"`
 }
 
 // Metadata returns the data source type name.
@@ -191,8 +192,12 @@ func (d *V1InstancesDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 							Description: "Instance fwpackage",
 							Computed:    true,
 						},
-						"os": schema.StringAttribute{
-							Description: "Instance os",
+						"os_version": schema.StringAttribute{
+							Description: "Instance os version",
+							Required:    true,
+						},
+						"os_build": schema.StringAttribute{
+							Description: "Instance os build",
 							Required:    true,
 						},
 						"agent": schema.SingleNestedAttribute{
@@ -282,7 +287,7 @@ func (d *V1InstancesDataSource) Read(ctx context.Context, req datasource.ReadReq
 	var state V1InstancesDataSourceModel
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	instances, r, err := d.client.InstancesApi.V1GetInstances(auth).Execute()
+	instances, r, err := d.client.Instances.List(auth).Execute()
 	if err != nil {
 		if r.StatusCode == http.StatusForbidden {
 			resp.Diagnostics.AddError(
@@ -308,8 +313,8 @@ func (d *V1InstancesDataSource) Read(ctx context.Context, req datasource.ReadReq
 	}
 
 	state.Id = types.StringValue(id)
-	state.Instances = make([]V1InstanceModel, len(instances))
-	for i, instance := range instances {
+	state.Instances = make([]InstanceModel, len(instances.Results))
+	for i, instance := range instances.Results {
 		state.Instances[i].Id = types.StringValue(instance.GetId())
 		state.Instances[i].Name = types.StringValue(instance.GetName())
 		state.Instances[i].Key = types.StringValue(instance.GetKey())
@@ -318,7 +323,7 @@ func (d *V1InstancesDataSource) Read(ctx context.Context, req datasource.ReadReq
 		state.Instances[i].Project = types.StringValue(instance.GetProject())
 		state.Instances[i].State = types.StringValue(string(instance.GetState()))
 		state.Instances[i].StateChanged = types.StringValue(instance.GetStateChanged().UTC().String())
-		state.Instances[i].StartedAt = types.StringValue(instance.GetStartedAt())
+		state.Instances[i].StartedAt = types.StringValue(instance.GetStartedAt().String())
 		state.Instances[i].UserTask = types.StringValue(instance.GetUserTask())
 		state.Instances[i].TaskState = types.StringValue(instance.GetTaskState())
 		state.Instances[i].Error = types.StringValue(instance.GetError())
@@ -329,7 +334,7 @@ func (d *V1InstancesDataSource) Read(ctx context.Context, req datasource.ReadReq
 			return
 		}
 
-		state.Instances[i].BootOptions = &V1InstanceBootOptionsModel{
+		state.Instances[i].BootOptions = &InstanceBootOptionsModel{
 			BootArgs:        types.StringValue(instance.BootOptions.GetBootArgs()),
 			RestoreBootArgs: types.StringValue(instance.BootOptions.GetRestoreBootArgs()),
 			UDID:            types.StringValue(instance.BootOptions.GetUdid()),
@@ -366,16 +371,18 @@ func (d *V1InstancesDataSource) Read(ctx context.Context, req datasource.ReadReq
 		state.Instances[i].Panicked = types.BoolValue(instance.GetPanicked())
 		state.Instances[i].Created = types.StringValue(instance.GetCreated().UTC().String())
 		state.Instances[i].Model = types.StringValue(instance.GetModel())
-		state.Instances[i].FWPackage = types.StringValue(instance.GetFwpackage())
-		state.Instances[i].OS = types.StringValue(instance.GetOs())
-		state.Instances[i].Agent = &V1InstanceAgentModel{
+		state.Instances[i].FWPackage = types.StringValue(instance.GetFwPackage())
+		state.Instances[i].OSBuild = types.StringValue(instance.GetOsBuild())
+		state.Instances[i].OSVersion = types.StringValue(instance.GetOsVersion())
+		state.Instances[i].Agent = &InstanceAgentModel{
 			Hash: types.StringValue(instance.Agent.Get().GetHash()),
 			Info: types.StringValue(instance.Agent.Get().GetInfo()),
 		}
-		state.Instances[i].Netmon = &V1InstanceNetmonModel{
-			Hash:    types.StringValue(instance.Netmon.Get().GetHash()),
-			Info:    types.StringValue(instance.Netmon.Get().GetInfo()),
-			Enabled: types.BoolValue(instance.Netmon.Get().GetEnabled()),
+		netmon := instance.GetNetMon()
+		state.Instances[i].Netmon = &InstanceNetmonModel{
+			Hash:    types.StringValue(netmon.GetHash()),
+			Info:    types.StringValue(netmon.GetInfo()),
+			Enabled: types.BoolValue(netmon.GetEnabled()),
 		}
 		state.Instances[i].ExposePort = types.StringValue(instance.GetExposePort())
 		state.Instances[i].Fault = types.BoolValue(instance.GetFault())
@@ -388,11 +395,11 @@ func (d *V1InstancesDataSource) Read(ctx context.Context, req datasource.ReadReq
 
 		state.Instances[i].Patches = patches
 
-		state.Instances[i].CreatedBy = &V1InstanceCreatedByModel{
-			Id:       types.StringValue(instance.CreatedBy.GetId()),
-			Username: types.StringValue(instance.CreatedBy.GetUsername()),
-			Label:    types.StringValue(instance.CreatedBy.GetLabel()),
-			Deleted:  types.BoolValue(instance.CreatedBy.GetDeleted()),
+		state.Instances[i].CreatedBy = &InstanceCreatedByModel{
+			Id:       types.StringValue(instance.CreatedBy.Get().GetId()),
+			Username: types.StringValue(instance.CreatedBy.Get().GetUsername()),
+			Label:    types.StringValue(instance.CreatedBy.Get().GetLabel()),
+			Deleted:  types.BoolValue(instance.CreatedBy.Get().GetDeleted()),
 		}
 	}
 
@@ -409,5 +416,5 @@ func (d *V1InstancesDataSource) Configure(_ context.Context, req datasource.Conf
 		return
 	}
 
-	d.client = req.ProviderData.(*corellium.APIClient)
+	d.client = req.ProviderData.(*ProviderData).Client
 }

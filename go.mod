@@ -4,7 +4,7 @@ module terraform-provider-corellium
 go 1.24.3
 
 require (
-	github.com/aimoda/go-corellium-api-client v0.0.0-20230416012942-39f2f87fa661
+	github.com/corellium/corellium-go-api-client v1.0.0
 	github.com/gruntwork-io/terratest v0.49.0
 	github.com/hashicorp/terraform-plugin-framework v1.2.0
 	github.com/hashicorp/terraform-plugin-framework-validators v0.10.0

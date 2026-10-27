@@ -3,12 +3,35 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/gruntwork-io/terratest/modules/terraform"
 )
 
+// requiredExamplesEnv lists the environment variables the examples need: a
+// Corellium API token for the provider and the S3 backend settings for state.
+var requiredExamplesEnv = []string{
+	"CORELLIUM_API_TOKEN",
+	"S3_BUCKET",
+	"S3_ENDPOINT",
+	"S3_REGION",
+	"S3_ACCESS_KEY",
+	"S3_SECRET_KEY",
+	"S3_SSE_KEY",
+}
+
 func TestExamples_resources(t *testing.T) {
+	var missing []string
+	for _, name := range requiredExamplesEnv {
+		if os.Getenv(name) == "" {
+			missing = append(missing, name)
+		}
+	}
+	if len(missing) > 0 {
+		t.Skipf("skipping examples tests, missing environment variables: %s", strings.Join(missing, ", "))
+	}
+
 	tests := []struct {
 		name   string
 		before func() error

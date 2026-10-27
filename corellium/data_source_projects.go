@@ -6,14 +6,15 @@ import (
 	"math/big"
 	"net/http"
 
-	"github.com/aimoda/go-corellium-api-client"
+	"terraform-provider-corellium/corellium/pkg/api"
+
+	corellium "github.com/corellium/corellium-go-api-client"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -29,12 +30,12 @@ func NewCorelliumV1ProjectsDataSource() datasource.DataSource {
 
 // V1ProjectsDataSource is the data source implementation.
 type V1ProjectsDataSource struct {
-	client *corellium.APIClient
+	client *corellium.CorelliumClient
 }
 
 type V1ProjectsModel struct {
-	Id       types.String     `tfsdk:"id"`
-	Projects []V1ProjectModel `tfsdk:"projects"`
+	Id       types.String   `tfsdk:"id"`
+	Projects []ProjectModel `tfsdk:"projects"`
 }
 
 // Metadata returns the data source type name.
@@ -218,7 +219,7 @@ func (d *V1ProjectsDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	}
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	projects, r, err := d.client.ProjectsApi.V1GetProjects(auth).Execute()
+	projects, r, err := d.client.Projects.List(auth).Execute()
 	if err != nil {
 		if r.StatusCode == http.StatusForbidden {
 			resp.Diagnostics.AddError(
@@ -253,18 +254,18 @@ func (d *V1ProjectsDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		return
 	}
 	state.Id = types.StringValue(id)
-	state.Projects = make([]V1ProjectModel, len(projects))
-	for i, project := range projects {
+	state.Projects = make([]ProjectModel, len(projects.Results))
+	for i, project := range projects.Results {
 		state.Projects[i].Id = types.StringValue(project.GetId())
 		state.Projects[i].Name = types.StringValue(project.GetName())
 
-		state.Projects[i].Settings = &V1ProjectSettingsModel{
+		state.Projects[i].Settings = &ProjectSettingsModel{
 			Version:        types.NumberValue(big.NewFloat(float64(project.Settings.GetVersion()))),
 			InternetAccess: types.BoolValue(project.Settings.GetInternetAccess()),
 			Dhcp:           types.BoolValue(project.Settings.GetDhcp()),
 		}
 
-		state.Projects[i].Quotas = &V1ProjectQuotasModel{
+		state.Projects[i].Quotas = &ProjectQuotasModel{
 			Name:      types.StringValue(project.GetName()),
 			Cores:     types.NumberValue(big.NewFloat(float64(project.Quotas.GetCores()))),
 			Instances: types.NumberValue(big.NewFloat(float64(project.Quotas.GetInstances()))),
@@ -277,7 +278,7 @@ func (d *V1ProjectsDataSource) Read(ctx context.Context, req datasource.ReadRequ
 			return
 		}
 
-		projectKeys, r, err := d.client.ProjectsApi.V1GetProjectKeys(auth, project.Id).Execute()
+		projectKeys, r, err := d.client.Projects.Keys.List(auth, project.Id).Execute()
 		if err != nil {
 			b, err := io.ReadAll(r.Body)
 			if err != nil {
@@ -294,9 +295,9 @@ func (d *V1ProjectsDataSource) Read(ctx context.Context, req datasource.ReadRequ
 			return
 		}
 
-		state.Projects[i].Keys = make([]V1ProjectKeyModel, len(projectKeys))
-		for j, key := range projectKeys {
-			state.Projects[i].Keys[j].Id = types.StringValue(key.GetIdentifier())
+		state.Projects[i].Keys = make([]ProjectKeyModel, len(projectKeys.Results))
+		for j, key := range projectKeys.Results {
+			state.Projects[i].Keys[j].Id = types.StringValue(key.GetId())
 			state.Projects[i].Keys[j].Label = types.StringValue("")
 			state.Projects[i].Keys[j].Kind = types.StringValue(key.GetKind())
 			state.Projects[i].Keys[j].Key = types.StringValue(key.GetKey())
@@ -325,5 +326,5 @@ func (d *V1ProjectsDataSource) Configure(_ context.Context, req datasource.Confi
 		return
 	}
 
-	d.client = req.ProviderData.(*corellium.APIClient)
+	d.client = req.ProviderData.(*ProviderData).Client
 }

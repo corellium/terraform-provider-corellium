@@ -14,7 +14,7 @@ provider "corellium" {
   token = ""
 }
 
-resource "corellium_v1project" "example" {
+resource "corellium_project" "example" {
   name = "example"
   settings = {
     version         = 1
@@ -29,8 +29,8 @@ resource "corellium_v1project" "example" {
   keys  = []
 }
 
-resource "corellium_v1instance" "example" {
-  project = corellium_v1project.example.id
+resource "corellium_instance" "example" {
+  project = corellium_project.example.id
   name    = "example"
   flavor  = "iphone7plus"
   os      = "15.7.5"

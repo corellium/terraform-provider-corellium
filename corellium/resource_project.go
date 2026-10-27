@@ -8,32 +8,33 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aimoda/go-corellium-api-client"
+	"terraform-provider-corellium/corellium/pkg/api"
+
+	corellium "github.com/corellium/corellium-go-api-client"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.Resource              = &CorelliumV1ProjectResource{}
-	_ resource.ResourceWithConfigure = &CorelliumV1ProjectResource{}
+	_ resource.Resource              = &CorelliumProjectResource{}
+	_ resource.ResourceWithConfigure = &CorelliumProjectResource{}
 )
 
-// NewCorelliumV1ProjectResource is a helper function to simplify the provider implementation.
-func NewCorelliumV1ProjectResource() resource.Resource {
-	return &CorelliumV1ProjectResource{}
+// NewCorelliumProjectResource is a helper function to simplify the provider implementation.
+func NewCorelliumProjectResource() resource.Resource {
+	return &CorelliumProjectResource{}
 }
 
-// CorelliumV1ProjectResource is the resource implementation.
-type CorelliumV1ProjectResource struct {
-	client *corellium.APIClient
+// CorelliumProjectResource is the resource implementation.
+type CorelliumProjectResource struct {
+	client *corellium.CorelliumClient
 }
 
-type V1ProjectUserModel struct {
+type ProjectUserModel struct {
 	// Id is the user ID.
 	Id types.String `tfsdk:"id"`
 	// Name is the user name.
@@ -46,7 +47,7 @@ type V1ProjectUserModel struct {
 	Role types.String `tfsdk:"role"`
 }
 
-type V1ProjectTeamModel struct {
+type ProjectTeamModel struct {
 	// Id is the team ID.
 	Id types.String `tfsdk:"id"`
 	// Label is the team label.
@@ -55,7 +56,7 @@ type V1ProjectTeamModel struct {
 	Role types.String `tfsdk:"role"`
 }
 
-type V1ProjectSettingsModel struct {
+type ProjectSettingsModel struct {
 	// Version is the project version.
 	Version types.Number `tfsdk:"version"`
 	// InternetAccess is a boolean that defines if the project has Internet access.
@@ -64,7 +65,7 @@ type V1ProjectSettingsModel struct {
 	Dhcp types.Bool `tfsdk:"dhcp"`
 }
 
-type V1ProjectQuotasModel struct {
+type ProjectQuotasModel struct {
 	// Name is the project name.
 	Name types.String `tfsdk:"name"`
 	// Core is the project cores quota.
@@ -77,7 +78,7 @@ type V1ProjectQuotasModel struct {
 	Ram types.Number `tfsdk:"ram"`
 }
 
-type V1ProjectKeyModel struct {
+type ProjectKeyModel struct {
 	// Id is the Identifier project key ID.
 	// Id is called Identifier in the API.
 	Id types.String `tfsdk:"id"`
@@ -96,24 +97,24 @@ type V1ProjectKeyModel struct {
 	UpdatedAt types.String `tfsdk:"updated_at"`
 }
 
-// V1ProjectModel maps the resource schema data.
-// https://github.com/aimoda/go-corellium-api-client/blob/main/docs/Project.md
-type V1ProjectModel struct { // TODO: add quotas_used model to the schema.
+// ProjectModel maps the resource schema data.
+// https://github.com/corellium/corellium-go-api-client/blob/main/docs/Project.md
+type ProjectModel struct { // TODO: add quotas_used model to the schema.
 	// Id is the project ID.
 	// The project ID is a uuid, universally unique identifier.
 	Id types.String `tfsdk:"id"`
 	// Name is the project name.
 	Name types.String `tfsdk:"name"`
 	// Settings is the project settings.
-	Settings *V1ProjectSettingsModel `tfsdk:"settings"`
+	Settings *ProjectSettingsModel `tfsdk:"settings"`
 	// Quotas is the project quotas.
-	Quotas *V1ProjectQuotasModel `tfsdk:"quotas"`
+	Quotas *ProjectQuotasModel `tfsdk:"quotas"`
 	// Users is the project users.
-	Users []V1ProjectUserModel `tfsdk:"users"`
+	Users []ProjectUserModel `tfsdk:"users"`
 	// Teams is the project teams.
-	Teams []V1ProjectTeamModel `tfsdk:"teams"`
+	Teams []ProjectTeamModel `tfsdk:"teams"`
 	// Keys is a list of the project authroized keys.
-	Keys []V1ProjectKeyModel `tfsdk:"keys"`
+	Keys []ProjectKeyModel `tfsdk:"keys"`
 	// CreatedAt is the project creation date.
 	CreatedAt types.String `tfsdk:"created_at"`
 	// UpdatedAt is the project last update date.
@@ -121,15 +122,15 @@ type V1ProjectModel struct { // TODO: add quotas_used model to the schema.
 }
 
 // Metadata returns the resource type name.
-func (d *CorelliumV1ProjectResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_v1project"
+func (d *CorelliumProjectResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_project"
 	// TypeName is the name of the resource type, which must be unique within the provider.
 	// This is used to identify the resource type in state and plan files.
-	// i.e: resource corellium_v1project "project" { ... }
+	// i.e: resource corellium_project "project" { ... }
 }
 
 // Schema defines the schema for the resource.
-func (d *CorelliumV1ProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (d *CorelliumProjectResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -290,8 +291,8 @@ type locker struct {
 var l locker = locker{mu: &sync.Mutex{}}
 
 // Create creates the resource and sets the initial Terraform state.
-func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan V1ProjectModel
+func (d *CorelliumProjectResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan ProjectModel
 
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -303,7 +304,7 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	projects, r, err := d.client.ProjectsApi.V1GetProjects(auth).Execute()
+	projects, r, err := d.client.Projects.List(auth).Execute()
 	if err != nil {
 		_, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -315,7 +316,7 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 		}
 	}
 
-	for _, project := range projects {
+	for _, project := range projects.Results {
 		if project.GetName() == plan.Name.ValueString() {
 			resp.Diagnostics.AddError(
 				"Error creating project",
@@ -330,22 +331,21 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 		return f
 	}
 
-	p := corellium.NewProjectWithDefaults()
-	p.SetName(plan.Name.ValueString())
+	createProjectBody := corellium.NewCreateProjectBody(plan.Name.ValueString())
 
 	s := corellium.NewProjectSettingsWithDefaults()
 	s.SetVersion(BigFloatToFloat32(plan.Settings.Version.ValueBigFloat()))
 	s.SetInternetAccess(plan.Settings.InternetAccess.ValueBool())
 	s.SetDhcp(plan.Settings.Dhcp.ValueBool())
 
-	p.SetSettings(*s)
+	createProjectBody.SetSettings(*s)
 
-	q := corellium.NewProjectQuotaWithDefaults()
-	q.SetCores(BigFloatToFloat32(plan.Quotas.Cores.ValueBigFloat()))
+	cores := BigFloatToFloat32(plan.Quotas.Cores.ValueBigFloat())
+	projectQuotaInput := corellium.NewProjectQuotaInput(cores)
 
-	p.SetQuotas(*q)
+	createProjectBody.SetQuotas(*projectQuotaInput)
 
-	created, r, err := d.client.ProjectsApi.V1CreateProject(auth).Project(*p).Execute()
+	created, r, err := d.client.Projects.Create(auth).CreateProjectBody(*createProjectBody).Execute()
 	if err != nil {
 		if r.StatusCode == http.StatusForbidden {
 			resp.Diagnostics.AddError(
@@ -379,7 +379,7 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 		return
 	}
 
-	project, r, err := d.client.ProjectsApi.V1GetProject(auth, created.GetId()).Execute()
+	project, r, err := d.client.Projects.Get(auth, created.GetId()).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -399,7 +399,7 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 
 	if len(plan.Users) > 0 {
 		for i, user := range plan.Users {
-			teams, r, err := d.client.TeamsApi.V1Teams(auth).Execute()
+			teams, r, err := d.client.Teams.List(auth).Execute()
 			if err != nil {
 				b, err := io.ReadAll(r.Body)
 				if err != nil {
@@ -419,14 +419,14 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 
 			// NOTICE: This is a workaround for the fact that the API doesn't support getting a single team by ID.
 			var found bool
-			for _, t := range teams {
+			for _, t := range teams.Results {
 				if t.Id == "all-users" {
 					for _, u := range t.Users {
 						if u.Id == user.Id.ValueString() {
 							user.Id = types.StringValue(u.Id)
-							user.Name = types.StringValue(u.Name)
+							user.Name = types.StringValue(*u.Name)
 							user.Label = types.StringValue(u.Label)
-							user.Email = types.StringValue(u.Email)
+							user.Email = types.StringValue(*u.Email)
 
 							found = true
 							break
@@ -445,7 +445,7 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 				return
 			}
 
-			r, err = d.client.RolesApi.V1AddUserRoleToProject(auth, project.GetId(), user.Id.ValueString(), user.Role.ValueString()).Execute()
+			r, err = d.client.Roles.Projects.AddUser(auth, project.GetId(), user.Id.ValueString(), user.Role.ValueString()).Execute()
 			if err != nil {
 				b, err := io.ReadAll(r.Body)
 				if err != nil {
@@ -469,7 +469,7 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 
 	if len(plan.Teams) > 0 {
 		for i, team := range plan.Teams {
-			teams, r, err := d.client.TeamsApi.V1Teams(auth).Execute()
+			teams, r, err := d.client.Teams.List(auth).Execute()
 			if err != nil {
 				b, err := io.ReadAll(r.Body)
 				if err != nil {
@@ -489,10 +489,10 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 
 			// NOTICE: This is a workaround for the fact that the API doesn't support getting a single team by ID.
 			var found bool
-			for _, t := range teams {
+			for _, t := range teams.Results {
 				if t.Id == team.Id.ValueString() {
 					team.Id = types.StringValue(t.Id)
-					team.Label = types.StringValue(t.Label)
+					team.Label = types.StringValue(*t.Label.Get())
 					found = true
 					break
 				}
@@ -506,7 +506,7 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 				return
 			}
 
-			r, err = d.client.RolesApi.V1AddTeamRoleToProject(auth, project.GetId(), team.Id.ValueString(), team.Role.ValueString()).Execute()
+			r, err = d.client.Roles.Projects.AddTeam(auth, project.GetId(), team.Id.ValueString(), team.Role.ValueString()).Execute()
 			if err != nil {
 				b, err := io.ReadAll(r.Body)
 				if err != nil {
@@ -530,8 +530,8 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 
 	if plan.Keys != nil && len(plan.Keys) > 0 {
 		for i, key := range plan.Keys {
-			p := corellium.NewProjectKey(key.Kind.ValueString(), key.Key.ValueString())
-			projectKey, r, err := d.client.ProjectsApi.V1AddProjectKey(auth, created.Id).ProjectKey(*p).Execute()
+			createProjectKeyBody := corellium.NewCreateProjectKeyBody(key.Kind.ValueString(), key.Key.ValueString())
+			projectKey, r, err := d.client.Projects.Keys.Create(auth, created.Id).CreateProjectKeyBody(*createProjectKeyBody).Execute()
 			if err != nil {
 				if r.StatusCode == http.StatusForbidden {
 					resp.Diagnostics.AddError(
@@ -557,7 +557,7 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 				return
 			}
 
-			plan.Keys[i].Id = types.StringValue(projectKey.GetIdentifier())
+			plan.Keys[i].Id = types.StringValue(projectKey.GetId())
 			plan.Keys[i].Label = types.StringValue(plan.Keys[i].Label.ValueString())
 			plan.Keys[i].Kind = types.StringValue(projectKey.GetKind())
 			plan.Keys[i].Key = types.StringValue(projectKey.GetKey())
@@ -596,8 +596,8 @@ func (d *CorelliumV1ProjectResource) Create(ctx context.Context, req resource.Cr
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (d *CorelliumV1ProjectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state V1ProjectModel
+func (d *CorelliumProjectResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state ProjectModel
 
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -606,7 +606,7 @@ func (d *CorelliumV1ProjectResource) Read(ctx context.Context, req resource.Read
 	}
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	project, r, err := d.client.ProjectsApi.V1GetProject(auth, state.Id.ValueString()).Execute()
+	project, r, err := d.client.Projects.Get(auth, state.Id.ValueString()).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -625,7 +625,7 @@ func (d *CorelliumV1ProjectResource) Read(ctx context.Context, req resource.Read
 
 	if state.Users != nil {
 		for i, user := range state.Users {
-			teams, r, err := d.client.TeamsApi.V1Teams(auth).Execute()
+			teams, r, err := d.client.Teams.List(auth).Execute()
 			if err != nil {
 				b, err := io.ReadAll(r.Body)
 				if err != nil {
@@ -645,13 +645,13 @@ func (d *CorelliumV1ProjectResource) Read(ctx context.Context, req resource.Read
 
 			// NOTICE: This is a workaround for the fact that the API doesn't support getting a single team by ID.
 			var found bool
-			for _, t := range teams {
+			for _, t := range teams.Results {
 				if t.Id == "all-users" {
 					for _, u := range t.Users {
 						if u.Id == user.Id.ValueString() {
 							user.Id = types.StringValue(u.Id)
-							user.Name = types.StringValue(u.Name)
-							user.Email = types.StringValue(u.Email)
+							user.Name = types.StringValue(*u.Name)
+							user.Email = types.StringValue(*u.Email)
 
 							found = true
 							break
@@ -676,7 +676,7 @@ func (d *CorelliumV1ProjectResource) Read(ctx context.Context, req resource.Read
 
 	if state.Teams != nil {
 		for i, team := range state.Teams {
-			teams, r, err := d.client.TeamsApi.V1Teams(auth).Execute()
+			teams, r, err := d.client.Teams.List(auth).Execute()
 			if err != nil {
 				b, err := io.ReadAll(r.Body)
 				if err != nil {
@@ -696,10 +696,10 @@ func (d *CorelliumV1ProjectResource) Read(ctx context.Context, req resource.Read
 
 			var found bool
 			// NOTICE: This is a workaround for the fact that the API doesn't support getting a single team by ID.
-			for _, t := range teams {
+			for _, t := range teams.Results {
 				if t.Id == team.Id.ValueString() {
 					team.Id = types.StringValue(t.Id)
-					team.Label = types.StringValue(t.Label)
+					team.Label = types.StringValue(*t.Label.Get())
 					found = true
 					break
 				}
@@ -719,7 +719,7 @@ func (d *CorelliumV1ProjectResource) Read(ctx context.Context, req resource.Read
 
 	if state.Keys != nil {
 		for _, key := range state.Keys {
-			projectKeys, r, err := d.client.ProjectsApi.V1GetProjectKeys(auth, project.Id).Execute()
+			projectKeys, r, err := d.client.Projects.Keys.List(auth, project.Id).Execute()
 			if err != nil {
 				b, err := io.ReadAll(r.Body)
 				if err != nil {
@@ -737,9 +737,9 @@ func (d *CorelliumV1ProjectResource) Read(ctx context.Context, req resource.Read
 			}
 
 			var found bool
-			for _, k := range projectKeys {
-				if k.GetIdentifier() == key.Id.ValueString() {
-					key.Id = types.StringValue(k.GetIdentifier())
+			for _, k := range projectKeys.Results {
+				if k.GetId() == key.Id.ValueString() {
+					key.Id = types.StringValue(k.GetId())
 					key.Label = types.StringValue(key.Label.String())
 					key.Kind = types.StringValue(k.GetKind())
 					key.Key = types.StringValue(k.GetKey())
@@ -780,8 +780,8 @@ func (d *CorelliumV1ProjectResource) Read(ctx context.Context, req resource.Read
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
-func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var state V1ProjectModel
+func (d *CorelliumProjectResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var state ProjectModel
 	// state is the current state of the resource.
 
 	diags := req.State.Get(ctx, &state)
@@ -790,7 +790,7 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	var plan V1ProjectModel
+	var plan ProjectModel
 	// plan is the proposed new state of the resource.
 
 	diags = req.Plan.Get(ctx, &plan)
@@ -804,23 +804,22 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 		return f
 	}
 
-	p := corellium.NewProject(state.Id.ValueString())
-	p.SetName(plan.Name.ValueString())
+	projectSettings := corellium.NewProjectSettings()
+	projectSettings.SetVersion(BigFloatToFloat32(plan.Settings.Version.ValueBigFloat()))
+	projectSettings.SetInternetAccess(plan.Settings.InternetAccess.ValueBool())
+	projectSettings.SetDhcp(plan.Settings.Dhcp.ValueBool())
 
-	s := corellium.NewProjectSettings()
-	s.SetVersion(BigFloatToFloat32(plan.Settings.Version.ValueBigFloat()))
-	s.SetInternetAccess(plan.Settings.InternetAccess.ValueBool())
-	s.SetDhcp(plan.Settings.Dhcp.ValueBool())
+	cores := BigFloatToFloat32(plan.Quotas.Cores.ValueBigFloat())
+	projectQuota := corellium.NewProjectQuotaInput(cores)
 
-	p.SetSettings(*s)
-
-	q := corellium.NewProjectQuota()
-	q.SetCores(BigFloatToFloat32(plan.Quotas.Cores.ValueBigFloat()))
-
-	p.SetQuotas(*q)
+	patchProjectBody := corellium.NewPatchProjectBody()
+	patchProjectBody.SetName(plan.Name.ValueString())
+	patchProjectBody.SetSettings(*projectSettings)
+	patchProjectBody.SetQuotas(*projectQuota)
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	project, r, err := d.client.ProjectsApi.V1UpdateProject(auth, state.Id.ValueString()).Project(*p).Execute()
+
+	project, r, err := d.client.Projects.Patch(auth, state.Id.ValueString()).PatchProjectBody(*patchProjectBody).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -849,7 +848,7 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 			}
 
 			if !found {
-				r, err := d.client.RolesApi.V1RemoveUserRoleFromProject(auth, state.Id.ValueString(), user.Id.ValueString(), user.Role.ValueString()).Execute()
+				r, err := d.client.Roles.Projects.RemoveUser(auth, state.Id.ValueString(), user.Id.ValueString(), user.Role.ValueString()).Execute()
 				if err != nil {
 					b, err := io.ReadAll(r.Body)
 					if err != nil {
@@ -878,7 +877,7 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 					}
 				} else {
 					// If the users attribute is empty, we need to set the state to empty too.
-					state.Users = []V1ProjectUserModel{}
+					state.Users = []ProjectUserModel{}
 
 					// However, when the plan has users atributes set to nil, we need to set the state to nil too.
 					if plan.Users == nil {
@@ -900,7 +899,7 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 			}
 
 			if !found {
-				teams, r, err := d.client.TeamsApi.V1Teams(auth).Execute()
+				teams, r, err := d.client.Teams.List(auth).Execute()
 				if err != nil {
 					b, err := io.ReadAll(r.Body)
 					if err != nil {
@@ -919,14 +918,14 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 				}
 
 				// NOTICE: This is a workaround for the fact that the API doesn't support getting a single team by ID.
-				for _, t := range teams {
+				for _, t := range teams.Results {
 					if t.Id == "all-users" {
 						for _, u := range t.Users {
 							if u.Id == user.Id.ValueString() {
 								user.Id = types.StringValue(u.Id)
-								user.Name = types.StringValue(u.Name)
+								user.Name = types.StringValue(*u.Name)
 								user.Label = types.StringValue(u.Label)
-								user.Email = types.StringValue(u.Email)
+								user.Email = types.StringValue(*u.Email)
 
 								break
 							}
@@ -936,7 +935,7 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 					}
 				}
 
-				r, err = d.client.RolesApi.V1AddUserRoleToProject(auth, state.Id.ValueString(), user.Id.ValueString(), user.Role.ValueString()).Execute()
+				r, err = d.client.Roles.Projects.AddUser(auth, state.Id.ValueString(), user.Id.ValueString(), user.Role.ValueString()).Execute()
 				if err != nil {
 					b, err := io.ReadAll(r.Body)
 					if err != nil {
@@ -970,7 +969,7 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 			}
 
 			if !found {
-				r, err := d.client.RolesApi.V1RemoveTeamRoleFromProject(auth, state.Id.ValueString(), team.Id.ValueString(), team.Role.ValueString()).Execute()
+				r, err := d.client.Roles.Projects.RemoveTeam(auth, state.Id.ValueString(), team.Id.ValueString(), team.Role.ValueString()).Execute()
 				if err != nil {
 					b, err := io.ReadAll(r.Body)
 					if err != nil {
@@ -999,7 +998,7 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 					}
 				} else {
 					// If the teams attribute is empty, we need to set the state to empty too.
-					state.Teams = []V1ProjectTeamModel{}
+					state.Teams = []ProjectTeamModel{}
 
 					// However, when the plan has teams atributes set to nil, we need to set the state to nil too.
 					if plan.Teams == nil {
@@ -1021,7 +1020,7 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 			}
 
 			if !found {
-				teams, r, err := d.client.TeamsApi.V1Teams(auth).Execute()
+				teams, r, err := d.client.Teams.List(auth).Execute()
 				if err != nil {
 					b, err := io.ReadAll(r.Body)
 					if err != nil {
@@ -1040,16 +1039,15 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 				}
 
 				// NOTICE: This is a workaround for the fact that the API doesn't support getting a single team by ID.
-				for _, t := range teams {
+				for _, t := range teams.Results {
 					if t.Id == team.Id.ValueString() {
 						team.Id = types.StringValue(t.Id)
-						team.Label = types.StringValue(t.Label)
-
+						team.Label = types.StringValue(*t.Label.Get())
 						break
 					}
 				}
 
-				r, err = d.client.RolesApi.V1AddTeamRoleToProject(auth, state.Id.ValueString(), team.Id.ValueString(), team.Role.ValueString()).Execute()
+				r, err = d.client.Roles.Projects.AddTeam(auth, state.Id.ValueString(), team.Id.ValueString(), team.Role.ValueString()).Execute()
 				if err != nil {
 					b, err := io.ReadAll(r.Body)
 					if err != nil {
@@ -1083,7 +1081,7 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 			}
 
 			if !found {
-				r, err := d.client.ProjectsApi.V1RemoveProjectKey(auth, state.Id.ValueString(), key.Id.ValueString()).Execute()
+				r, err := d.client.Projects.Keys.Delete(auth, state.Id.ValueString(), key.Id.ValueString()).Execute()
 				if err != nil {
 					b, err := io.ReadAll(r.Body)
 					if err != nil {
@@ -1112,7 +1110,7 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 					}
 				} else {
 					// If the keys attribute is empty, we need to set the state to empty too.
-					state.Keys = []V1ProjectKeyModel{}
+					state.Keys = []ProjectKeyModel{}
 
 					// However, when the plan has keys atributes set to nil, we need to set the state to nil too.
 					if plan.Keys == nil {
@@ -1134,8 +1132,8 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 			}
 
 			if !found {
-				p := corellium.NewProjectKey(key.Kind.ValueString(), key.Key.ValueString())
-				key, r, err := d.client.ProjectsApi.V1AddProjectKey(auth, state.Id.ValueString()).ProjectKey(*p).Execute()
+				createProjectKeyBody := corellium.NewCreateProjectKeyBody(key.Kind.ValueString(), key.Key.ValueString())
+				key, r, err := d.client.Projects.Keys.Create(auth, state.Id.ValueString()).CreateProjectKeyBody(*createProjectKeyBody).Execute()
 				if err != nil {
 					b, err := io.ReadAll(r.Body)
 					if err != nil {
@@ -1153,8 +1151,8 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 					return
 				}
 
-				state.Keys = append(state.Keys, V1ProjectKeyModel{
-					Id:          types.StringValue(key.GetIdentifier()),
+				state.Keys = append(state.Keys, ProjectKeyModel{
+					Id:          types.StringValue(key.GetId()),
 					Label:       plan.Keys[i].Label,
 					Kind:        types.StringValue(key.Kind),
 					Key:         types.StringValue(key.Key),
@@ -1188,8 +1186,8 @@ func (d *CorelliumV1ProjectResource) Update(ctx context.Context, req resource.Up
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
-func (d *CorelliumV1ProjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state V1ProjectModel
+func (d *CorelliumProjectResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state ProjectModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -1197,7 +1195,7 @@ func (d *CorelliumV1ProjectResource) Delete(ctx context.Context, req resource.De
 	}
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	r, err := d.client.ProjectsApi.V1DeleteProject(auth, state.Id.ValueString()).Execute()
+	r, err := d.client.Projects.Delete(auth, state.Id.ValueString()).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -1216,10 +1214,10 @@ func (d *CorelliumV1ProjectResource) Delete(ctx context.Context, req resource.De
 }
 
 // Configure adds the provider configured client to the resource.
-func (d *CorelliumV1ProjectResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
+func (d *CorelliumProjectResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
 
-	d.client = req.ProviderData.(*corellium.APIClient)
+	d.client = req.ProviderData.(*ProviderData).Client
 }

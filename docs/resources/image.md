@@ -1,9 +1,9 @@
-# corellium_v1image
+# corellium_image
 
 ## Example
 
 ```terraform
-resource "corellium_v1image" "example" {
+resource "corellium_image" "example" {
   name = "example"
   type = "backup"
   filename = "/tmp/image.txt"
@@ -31,8 +31,6 @@ resource "corellium_v1image" "example" {
 - `status` (string) - Image status.
 
 - `id` (string) - Image ID.
-
-- `unique_id` (string) - Image unique ID.
 
 - `size` (number) - Image size.
 

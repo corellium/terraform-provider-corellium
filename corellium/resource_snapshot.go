@@ -5,30 +5,31 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/aimoda/go-corellium-api-client"
+	"terraform-provider-corellium/corellium/pkg/api"
+
+	corellium "github.com/corellium/corellium-go-api-client"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.Resource              = &CorelliumV1SnapshotResource{}
-	_ resource.ResourceWithConfigure = &CorelliumV1SnapshotResource{}
+	_ resource.Resource              = &CorelliumSnapshotResource{}
+	_ resource.ResourceWithConfigure = &CorelliumSnapshotResource{}
 )
 
-// NewCorelliumV1SnapshotResource is a helper function to simplify the provider implementation.
-func NewCorelliumV1SnapshotResource() resource.Resource {
-	return &CorelliumV1SnapshotResource{}
+// NewCorelliumSnapshotResource is a helper function to simplify the provider implementation.
+func NewCorelliumSnapshotResource() resource.Resource {
+	return &CorelliumSnapshotResource{}
 }
 
-// CorelliumV1SnapshotResource is the resource implementation.
-type CorelliumV1SnapshotResource struct {
-	client *corellium.APIClient
+// CorelliumSnapshotResource is the resource implementation.
+type CorelliumSnapshotResource struct {
+	client *corellium.CorelliumClient
 }
 
-type V1SnapshotStatusModel struct {
+type SnapshotStatusModel struct {
 	// Task is the task name.
 	// It can be either "creating", "deleting" or "none.
 	Task types.String `tfsdk:"task"`
@@ -36,9 +37,9 @@ type V1SnapshotStatusModel struct {
 	Created types.Bool `tfsdk:"created"`
 }
 
-// V1SnapshotModel maps the resource schema data.
-// https://github.com/aimoda/go-corellium-api-client/blob/main/docs/Snapshot.md
-type V1SnapshotModel struct {
+// SnapshotModel maps the resource schema data.
+// https://github.com/corellium/corellium-go-api-client/blob/main/docs/Snapshot.md
+type SnapshotModel struct {
 	// Id is the snapshot id.
 	Id types.String `tfsdk:"id"`
 	// Name is the snapshot name.
@@ -46,7 +47,7 @@ type V1SnapshotModel struct {
 	// Instance is the instance id.
 	Instance types.String `tfsdk:"instance"`
 	// Status is the snapshot status.
-	Status *V1SnapshotStatusModel `tfsdk:"status"`
+	Status *SnapshotStatusModel `tfsdk:"status"`
 	// Date is the time when the snapshot was created.
 	// Data is a float64 because the API returns a UNIX timestamp.
 	Date  types.Float64 `tfsdk:"date"`
@@ -57,15 +58,15 @@ type V1SnapshotModel struct {
 }
 
 // Metadata returns the resource type name.
-func (d *CorelliumV1SnapshotResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_v1snapshot"
+func (d *CorelliumSnapshotResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_snapshot"
 	// TypeName is the name of the resource type, which must be unique within the provider.
 	// This is used to identify the resource type in state and plan files.
-	// i.e: resource corellium_v1snapshot "snapshot" { ... }
+	// i.e: resource corellium_snapshot "snapshot" { ... }
 }
 
 // Schema defines the schema for the resource.
-func (d *CorelliumV1SnapshotResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (d *CorelliumSnapshotResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -116,8 +117,8 @@ func (d *CorelliumV1SnapshotResource) Schema(_ context.Context, _ resource.Schem
 }
 
 // Create creates the resource and sets the initial Terraform state.
-func (d *CorelliumV1SnapshotResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan V1SnapshotModel
+func (d *CorelliumSnapshotResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan SnapshotModel
 
 	diags := req.Config.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -125,9 +126,9 @@ func (d *CorelliumV1SnapshotResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-	o := corellium.NewSnapshotCreationOptions(plan.Name.ValueString())
+	createSnapshotBody := corellium.NewCreateSnapshotBody(plan.Name.ValueString())
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	snapshot, r, err := d.client.SnapshotsApi.V1CreateSnapshot(auth, plan.Instance.ValueString()).SnapshotCreationOptions(*o).Execute()
+	snapshot, r, err := d.client.Snapshots.Create(auth, plan.Instance.ValueString()).CreateSnapshotBody(*createSnapshotBody).Execute()
 	if err != nil {
 		if r.StatusCode == http.StatusForbidden {
 			resp.Diagnostics.AddError(
@@ -156,7 +157,7 @@ func (d *CorelliumV1SnapshotResource) Create(ctx context.Context, req resource.C
 	plan.Id = types.StringValue(snapshot.GetId())
 	plan.Name = types.StringValue(snapshot.GetName())
 	plan.Instance = types.StringValue(snapshot.GetInstance())
-	plan.Status = &V1SnapshotStatusModel{
+	plan.Status = &SnapshotStatusModel{
 		Task:    types.StringValue(snapshot.Status.GetTask()),
 		Created: types.BoolValue(snapshot.Status.GetCreated()),
 	}
@@ -173,8 +174,8 @@ func (d *CorelliumV1SnapshotResource) Create(ctx context.Context, req resource.C
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (d *CorelliumV1SnapshotResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state V1SnapshotModel
+func (d *CorelliumSnapshotResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state SnapshotModel
 
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -183,7 +184,7 @@ func (d *CorelliumV1SnapshotResource) Read(ctx context.Context, req resource.Rea
 	}
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	snapshot, r, err := d.client.SnapshotsApi.V1GetSnapshot(auth, state.Id.ValueString()).Execute()
+	snapshot, r, err := d.client.Snapshots.GetById(auth, state.Id.ValueString()).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -204,7 +205,7 @@ func (d *CorelliumV1SnapshotResource) Read(ctx context.Context, req resource.Rea
 	state.Id = types.StringValue(snapshot.GetId())
 	state.Name = types.StringValue(snapshot.GetName())
 	state.Instance = types.StringValue(snapshot.GetInstance())
-	state.Status = &V1SnapshotStatusModel{
+	state.Status = &SnapshotStatusModel{
 		Task:    types.StringValue(snapshot.Status.GetTask()),
 		Created: types.BoolValue(snapshot.Status.GetCreated()),
 	}
@@ -220,8 +221,8 @@ func (d *CorelliumV1SnapshotResource) Read(ctx context.Context, req resource.Rea
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
-func (d *CorelliumV1SnapshotResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var state V1SnapshotModel
+func (d *CorelliumSnapshotResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var state SnapshotModel
 	// state is the current state of the resource.
 
 	diags := req.State.Get(ctx, &state)
@@ -230,7 +231,7 @@ func (d *CorelliumV1SnapshotResource) Update(ctx context.Context, req resource.U
 		return
 	}
 
-	var plan V1SnapshotModel
+	var plan SnapshotModel
 	// plan is the proposed new state of the resource.
 
 	diags = req.Config.Get(ctx, &plan)
@@ -246,10 +247,10 @@ func (d *CorelliumV1SnapshotResource) Update(ctx context.Context, req resource.U
 		)
 	}
 
-	o := corellium.NewSnapshotCreationOptions(plan.Name.ValueString())
+	createSnapshotBody := corellium.NewCreateSnapshotBody(plan.Name.ValueString())
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	if !state.Name.Equal(plan.Name) {
-		snapshot, r, err := d.client.SnapshotsApi.V1SnapshotRename(auth, state.Id.ValueString()).SnapshotCreationOptions(*o).Execute()
+		snapshot, r, err := d.client.Snapshots.Patch(auth, state.Instance.ValueString(), state.Id.ValueString()).CreateSnapshotBody(*createSnapshotBody).Execute()
 		if err != nil {
 			b, err := io.ReadAll(r.Body)
 			if err != nil {
@@ -278,8 +279,8 @@ func (d *CorelliumV1SnapshotResource) Update(ctx context.Context, req resource.U
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
-func (d *CorelliumV1SnapshotResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state V1SnapshotModel
+func (d *CorelliumSnapshotResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state SnapshotModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -287,7 +288,7 @@ func (d *CorelliumV1SnapshotResource) Delete(ctx context.Context, req resource.D
 	}
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	r, err := d.client.SnapshotsApi.V1DeleteSnapshot(auth, state.Id.ValueString()).Execute()
+	r, err := d.client.Snapshots.DeleteById(auth, state.Id.ValueString()).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -306,10 +307,10 @@ func (d *CorelliumV1SnapshotResource) Delete(ctx context.Context, req resource.D
 }
 
 // Configure adds the provider configured client to the resource.
-func (d *CorelliumV1SnapshotResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
+func (d *CorelliumSnapshotResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
 
-	d.client = req.ProviderData.(*corellium.APIClient)
+	d.client = req.ProviderData.(*ProviderData).Client
 }

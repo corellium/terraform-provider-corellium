@@ -2,16 +2,16 @@ package corellium
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"terraform-provider-corellium/corellium/pkg/api"
 
-	"github.com/aimoda/go-corellium-api-client"
+	corellium "github.com/corellium/corellium-go-api-client"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -31,7 +31,8 @@ func NewCorelliumV1ModelSoftwareDataSource() datasource.DataSource {
 
 // corelliumDataSource is the data source implementation.
 type V1ModelSoftwareDataSource struct {
-	client *corellium.APIClient
+	client *corellium.CorelliumClient
+	host   string
 }
 
 type V1SoftwareDataSourceModel struct {
@@ -159,7 +160,7 @@ func (d *V1ModelSoftwareDataSource) Read(ctx context.Context, req datasource.Rea
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	// software, _, err := d.client.ModelsApi.V1GetModelSoftware(auth, state.Model.ValueString()).Execute()
 	// Replace apiUrl with the actual API URL. Workaround for endpoint.
-	url := strings.Join([]string{"https://", os.Getenv("CORELLIUM_API_HOST"), "/api"}, "")
+	url := strings.Join([]string{"https://", d.host, "/api"}, "")
 	customSoftware, err := V1GetModelSoftwareManual(auth, url, state.Model.ValueString())
 	// if err != nil && software != nil {
 	// 	resp.Diagnostics.AddError(
@@ -229,7 +230,9 @@ func (d *V1ModelSoftwareDataSource) Configure(_ context.Context, req datasource.
 		return
 	}
 
-	d.client = req.ProviderData.(*corellium.APIClient)
+	providerData := req.ProviderData.(*ProviderData)
+	d.client = providerData.Client
+	d.host = providerData.Host
 }
 
 type CustomFirmware struct {
@@ -257,7 +260,9 @@ type CustomFirmware struct {
 
 // Workaround for Corellium ModelsAPI. This API is not currently working as expected. (returning values such as Size that are larger than Int32 can handle)
 func V1GetModelSoftwareManual(ctx context.Context, url string, model string) ([]CustomFirmware, error) {
-	client := &http.Client{}
+	client := &http.Client{
+		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}, // matches the provider's main API client.
+	}
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url+"/v1/models/"+model+"/software", nil)
 	if err != nil {

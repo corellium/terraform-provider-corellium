@@ -14,7 +14,7 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
-                resource "corellium_v1project" "test" {
+                resource "corellium_project" "test" {
                     name = "test"
                     settings = {
                         version = 1
@@ -30,21 +30,21 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "1"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.internet_access", "false"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.dhcp", "false"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.cores", "1"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "2.5"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "6144"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "users.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "keys.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "name", "test"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.version", "1"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.internet_access", "false"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.dhcp", "false"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.cores", "1"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.instances", "2.5"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.ram", "6144"),
+					resource.TestCheckResourceAttr("corellium_project.test", "users.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "teams.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "keys.#", "0"),
 				),
 			},
 			{
 				Config: providerConfig + `
-                resource "corellium_v1project" "test" {
+                resource "corellium_project" "test" {
                     name = "test_update"
                     settings = {
                         version = 2
@@ -60,21 +60,21 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test_update"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "2"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.internet_access", "true"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.dhcp", "true"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.cores", "2"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "5"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "12288"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "users.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "keys.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "name", "test_update"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.version", "2"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.internet_access", "true"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.dhcp", "true"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.cores", "2"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.instances", "5"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.ram", "12288"),
+					resource.TestCheckResourceAttr("corellium_project.test", "users.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "teams.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "keys.#", "0"),
 				),
 			},
 			{
 				Config: providerConfig + fmt.Sprintf(`
-				resource "corellium_v1user" "test" {
+				resource "corellium_user" "test" {
 					label = "test"
 					name = "test"
 					email = "testing@testing.ai.moda"
@@ -82,7 +82,7 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
 					administrator = true
 				}
 
-                resource "corellium_v1project" "test" {
+                resource "corellium_project" "test" {
                     name = "test"
                     settings = {
                         version = 2
@@ -94,7 +94,7 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                     }
                     users = [
                         {
-                            id = corellium_v1user.test.id
+                            id = corellium_user.test.id
                             role = "admin"
                         }
                     ]
@@ -103,22 +103,22 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                 }
                 `, generatePassword(32, 4, 4, 4)),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "2"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.internet_access", "true"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.dhcp", "true"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.cores", "2"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "5"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "12288"),
-					resource.TestCheckResourceAttrSet("corellium_v1project.test", "users.0.id"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "users.0.role", "admin"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "keys.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "name", "test"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.version", "2"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.internet_access", "true"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.dhcp", "true"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.cores", "2"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.instances", "5"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.ram", "12288"),
+					resource.TestCheckResourceAttrSet("corellium_project.test", "users.0.id"),
+					resource.TestCheckResourceAttr("corellium_project.test", "users.0.role", "admin"),
+					resource.TestCheckResourceAttr("corellium_project.test", "teams.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "keys.#", "0"),
 				),
 			},
 			{
 				Config: providerConfig + fmt.Sprintf(`
-				resource "corellium_v1user" "test" {
+				resource "corellium_user" "test" {
 					label = "test"
 					name = "test"
 					email = "testing@testing.ai.moda"
@@ -126,7 +126,7 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
 					administrator = true
 				}
 
-                resource "corellium_v1project" "test" {
+                resource "corellium_project" "test" {
                     name = "test"
                     settings = {
                         version = 2
@@ -142,21 +142,21 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                 }
                 `, generatePassword(32, 4, 4, 4)),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "2"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.internet_access", "true"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.dhcp", "true"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.cores", "2"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "5"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "12288"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "users.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "keys.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "name", "test"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.version", "2"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.internet_access", "true"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.dhcp", "true"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.cores", "2"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.instances", "5"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.ram", "12288"),
+					resource.TestCheckResourceAttr("corellium_project.test", "users.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "teams.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "keys.#", "0"),
 				),
 			},
 			{
 				Config: providerConfig + fmt.Sprintf(`
-				resource "corellium_v1user" "test" {
+				resource "corellium_user" "test" {
 					label = "test"
 					name = "test"
 					email = "testing@testing.ai.moda"
@@ -164,16 +164,16 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
 					administrator = true
 				}
 
-				resource "corellium_v1team" "test" {
+				resource "corellium_team" "test" {
 					label = "test"
 					users = [
 						{
-							id = corellium_v1user.test.id
+							id = corellium_user.test.id
 						},
 					]
 				}
 
-                resource "corellium_v1project" "test" {
+                resource "corellium_project" "test" {
                     name = "test"
                     settings = {
                         version = 2
@@ -186,7 +186,7 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                     users = []
                     teams = [
                         {
-                            id = corellium_v1team.test.id
+                            id = corellium_team.test.id
                             role = "admin"
                         }
                     ]
@@ -194,22 +194,22 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                 }
                 `, generatePassword(32, 4, 4, 4)),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "2"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.internet_access", "true"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.dhcp", "true"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.cores", "2"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "5"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "12288"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "users.#", "0"),
-					resource.TestCheckResourceAttrSet("corellium_v1project.test", "teams.0.id"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.0.role", "admin"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "keys.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "name", "test"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.version", "2"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.internet_access", "true"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.dhcp", "true"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.cores", "2"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.instances", "5"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.ram", "12288"),
+					resource.TestCheckResourceAttr("corellium_project.test", "users.#", "0"),
+					resource.TestCheckResourceAttrSet("corellium_project.test", "teams.0.id"),
+					resource.TestCheckResourceAttr("corellium_project.test", "teams.0.role", "admin"),
+					resource.TestCheckResourceAttr("corellium_project.test", "keys.#", "0"),
 				),
 			},
 			{
 				Config: providerConfig + fmt.Sprintf(`
-				resource "corellium_v1user" "test" {
+				resource "corellium_user" "test" {
 					label = "test"
 					name = "test"
 					email = "testing@testing.ai.moda"
@@ -217,16 +217,16 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
 					administrator = true
 				}
 
-				resource "corellium_v1team" "test" {
+				resource "corellium_team" "test" {
 					label = "test"
 					users = [
 						{
-							id = corellium_v1user.test.id
+							id = corellium_user.test.id
 						},
 					]
 				}
 
-                resource "corellium_v1project" "test" {
+                resource "corellium_project" "test" {
                     name = "test"
                     settings = {
                         version = 2
@@ -242,21 +242,21 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                 }
                 `, generatePassword(32, 4, 4, 4)),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "2"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.internet_access", "true"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.dhcp", "true"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.cores", "2"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "5"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "12288"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "users.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "keys.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "name", "test"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.version", "2"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.internet_access", "true"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.dhcp", "true"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.cores", "2"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.instances", "5"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.ram", "12288"),
+					resource.TestCheckResourceAttr("corellium_project.test", "users.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "teams.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "keys.#", "0"),
 				),
 			},
 			{
 				Config: providerConfig + `
-                resource "corellium_v1project" "test" {
+                resource "corellium_project" "test" {
                     name = "test"
                     settings = {
                         version = 2
@@ -278,17 +278,17 @@ func TestAccCorelliumV1ProjectResource_basic(t *testing.T) {
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "2"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.internet_access", "true"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.dhcp", "true"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.cores", "2"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "5"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "12288"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "users.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "keys.0.kind", "ssh"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "keys.0.key", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEu0tbHR0DTV6wZqOcU/+xuNzyPsA7QzV9Eu5q2JbRVw"),
+					resource.TestCheckResourceAttr("corellium_project.test", "name", "test"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.version", "2"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.internet_access", "true"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.dhcp", "true"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.cores", "2"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.instances", "5"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.ram", "12288"),
+					resource.TestCheckResourceAttr("corellium_project.test", "users.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "teams.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "keys.0.kind", "ssh"),
+					resource.TestCheckResourceAttr("corellium_project.test", "keys.0.key", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEu0tbHR0DTV6wZqOcU/+xuNzyPsA7QzV9Eu5q2JbRVw"),
 				),
 			},
 		},
@@ -301,7 +301,7 @@ func TestAccCorelliumV1ProjectResource_users(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + fmt.Sprintf(`
-				resource "corellium_v1user" "test" {
+				resource "corellium_user" "test" {
 					label = "test"
 					name = "test"
 					email = "testing@testing.ai.moda"
@@ -309,7 +309,7 @@ func TestAccCorelliumV1ProjectResource_users(t *testing.T) {
 					administrator = true
 				}
 
-                resource "corellium_v1project" "test" {
+                resource "corellium_project" "test" {
                     name = "test"
                     settings = {
                         version = 1
@@ -321,7 +321,7 @@ func TestAccCorelliumV1ProjectResource_users(t *testing.T) {
                     }
                     users = [
                         {
-                            id = corellium_v1user.test.id
+                            id = corellium_user.test.id
                             role = "admin"
                         }
                     ]
@@ -330,22 +330,22 @@ func TestAccCorelliumV1ProjectResource_users(t *testing.T) {
                 }
                 `, generatePassword(32, 4, 4, 4)),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "1"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.internet_access", "false"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.dhcp", "false"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.cores", "1"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "2.5"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "6144"),
-					resource.TestCheckResourceAttrSet("corellium_v1project.test", "users.0.id"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "users.0.role", "admin"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "keyss.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "name", "test"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.version", "1"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.internet_access", "false"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.dhcp", "false"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.cores", "1"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.instances", "2.5"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.ram", "6144"),
+					resource.TestCheckResourceAttrSet("corellium_project.test", "users.0.id"),
+					resource.TestCheckResourceAttr("corellium_project.test", "users.0.role", "admin"),
+					resource.TestCheckResourceAttr("corellium_project.test", "teams.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "keyss.#", "0"),
 				),
 			},
 			{
 				Config: providerConfig + fmt.Sprintf(`
-				resource "corellium_v1user" "test" {
+				resource "corellium_user" "test" {
 					label = "test"
 					name = "test"
 					email = "testing@testing.ai.moda"
@@ -353,7 +353,7 @@ func TestAccCorelliumV1ProjectResource_users(t *testing.T) {
 					administrator = true
 				}
 
-                resource "corellium_v1project" "test" {
+                resource "corellium_project" "test" {
                     name = "test"
                     settings = {
                         version = 1
@@ -369,16 +369,16 @@ func TestAccCorelliumV1ProjectResource_users(t *testing.T) {
                 }
                 `, generatePassword(32, 4, 4, 4)),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "1"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.internet_access", "false"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.dhcp", "false"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.cores", "1"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "2.5"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "6144"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "users.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "keyss.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "name", "test"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.version", "1"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.internet_access", "false"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.dhcp", "false"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.cores", "1"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.instances", "2.5"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.ram", "6144"),
+					resource.TestCheckResourceAttr("corellium_project.test", "users.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "teams.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "keyss.#", "0"),
 				),
 			},
 		},
@@ -391,7 +391,7 @@ func TestAccCorelliumV1ProjectResource_teams(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + fmt.Sprintf(`
-				resource "corellium_v1user" "test" {
+				resource "corellium_user" "test" {
 					label = "test"
 					name = "test"
 					email = "testing@testing.ai.moda"
@@ -399,16 +399,16 @@ func TestAccCorelliumV1ProjectResource_teams(t *testing.T) {
 					administrator = true
 				}
 
-				resource "corellium_v1team" "test" {
+				resource "corellium_team" "test" {
 					label = "test"
 					users = [
 						{
-							id = corellium_v1user.test.id
+							id = corellium_user.test.id
 						},
 					]
 				}
 
-                resource "corellium_v1project" "test" {
+                resource "corellium_project" "test" {
                     name = "test"
                     settings = {
                         version = 1
@@ -421,7 +421,7 @@ func TestAccCorelliumV1ProjectResource_teams(t *testing.T) {
                     users = []
                     teams = [
                         {
-                            id = corellium_v1team.test.id
+                            id = corellium_team.test.id
                             role = "admin"
                         }
                     ]
@@ -429,22 +429,22 @@ func TestAccCorelliumV1ProjectResource_teams(t *testing.T) {
                 }
                 `, generatePassword(32, 4, 4, 4)),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "1"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.internet_access", "false"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.dhcp", "false"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.cores", "1"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "2.5"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "6144"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "users.#", "0"),
-					resource.TestCheckResourceAttrSet("corellium_v1project.test", "teams.0.id"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.0.role", "admin"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "keys.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "name", "test"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.version", "1"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.internet_access", "false"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.dhcp", "false"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.cores", "1"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.instances", "2.5"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.ram", "6144"),
+					resource.TestCheckResourceAttr("corellium_project.test", "users.#", "0"),
+					resource.TestCheckResourceAttrSet("corellium_project.test", "teams.0.id"),
+					resource.TestCheckResourceAttr("corellium_project.test", "teams.0.role", "admin"),
+					resource.TestCheckResourceAttr("corellium_project.test", "keys.#", "0"),
 				),
 			},
 			{
 				Config: providerConfig + fmt.Sprintf(`
-				resource "corellium_v1user" "test" {
+				resource "corellium_user" "test" {
 					label = "test"
 					name = "test"
 					email = "testing@testing.ai.moda"
@@ -452,16 +452,16 @@ func TestAccCorelliumV1ProjectResource_teams(t *testing.T) {
 					administrator = true
 				}
 
-				resource "corellium_v1team" "test" {
+				resource "corellium_team" "test" {
 					label = "test"
 					users = [
 						{
-							id = corellium_v1user.test.id
+							id = corellium_user.test.id
 						},
 					]
 				}
 
-                resource "corellium_v1project" "test" {
+                resource "corellium_project" "test" {
                     name = "test"
                     settings = {
                         version = 1
@@ -477,16 +477,16 @@ func TestAccCorelliumV1ProjectResource_teams(t *testing.T) {
                 }
                 `, generatePassword(32, 4, 4, 4)),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "1"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.internet_access", "false"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.dhcp", "false"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.cores", "1"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "2.5"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "6144"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "users.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "keys.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "name", "test"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.version", "1"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.internet_access", "false"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.dhcp", "false"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.cores", "1"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.instances", "2.5"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.ram", "6144"),
+					resource.TestCheckResourceAttr("corellium_project.test", "users.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "teams.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "keys.#", "0"),
 				),
 			},
 		},
@@ -499,7 +499,7 @@ func TestAccCorelliumV1ProjectResource_keys(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
-				resource "corellium_v1project" "test" {
+				resource "corellium_project" "test" {
 					name = "test"
 					settings = {
 						version = 1
@@ -521,23 +521,23 @@ func TestAccCorelliumV1ProjectResource_keys(t *testing.T) {
 				}
 				`,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "1"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.internet_access", "false"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.dhcp", "false"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.cores", "1"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "2.5"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "6144"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "users.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "keys.0.label", "test"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "keys.0.kind", "ssh"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "keys.0.key", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFD33iT/L6sIb3kUWNMg2q9IbIF0DzksIRXJt4BbaP3K"),
+					resource.TestCheckResourceAttr("corellium_project.test", "name", "test"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.version", "1"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.internet_access", "false"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.dhcp", "false"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.cores", "1"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.instances", "2.5"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.ram", "6144"),
+					resource.TestCheckResourceAttr("corellium_project.test", "users.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "teams.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "keys.0.label", "test"),
+					resource.TestCheckResourceAttr("corellium_project.test", "keys.0.kind", "ssh"),
+					resource.TestCheckResourceAttr("corellium_project.test", "keys.0.key", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFD33iT/L6sIb3kUWNMg2q9IbIF0DzksIRXJt4BbaP3K"),
 				),
 			},
 			{
 				Config: providerConfig + `
-				resource "corellium_v1project" "test" {
+				resource "corellium_project" "test" {
 					name = "test"
 					settings = {
 						version = 1
@@ -553,16 +553,16 @@ func TestAccCorelliumV1ProjectResource_keys(t *testing.T) {
 				}
 				`,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1project.test", "name", "test"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.version", "1"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.internet_access", "false"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "settings.dhcp", "false"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.cores", "1"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.instances", "2.5"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "quotas.ram", "6144"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "users.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "teams.#", "0"),
-					resource.TestCheckResourceAttr("corellium_v1project.test", "keys.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "name", "test"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.version", "1"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.internet_access", "false"),
+					resource.TestCheckResourceAttr("corellium_project.test", "settings.dhcp", "false"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.cores", "1"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.instances", "2.5"),
+					resource.TestCheckResourceAttr("corellium_project.test", "quotas.ram", "6144"),
+					resource.TestCheckResourceAttr("corellium_project.test", "users.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "teams.#", "0"),
+					resource.TestCheckResourceAttr("corellium_project.test", "keys.#", "0"),
 				),
 			},
 		},
@@ -575,7 +575,7 @@ func TestAccCorelliumV1ProjectResource_duplicated(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
-                resource "corellium_v1project" "test" {
+                resource "corellium_project" "test" {
                     name = "test"
                     settings = {
                         version = 1
@@ -590,7 +590,7 @@ func TestAccCorelliumV1ProjectResource_duplicated(t *testing.T) {
 					keys = []
                 }
 
-                resource "corellium_v1project" "test_duplicated" {
+                resource "corellium_project" "test_duplicated" {
                     name = "test"
                     settings = {
                         version = 1
@@ -617,7 +617,7 @@ func TestAccCorelliumV1ProjectResource_non_enterprise(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfigNonEnterprise + `
-                resource "corellium_v1project" "test" {
+                resource "corellium_project" "test" {
                     name = "test"
                     settings = {
                         version = 1

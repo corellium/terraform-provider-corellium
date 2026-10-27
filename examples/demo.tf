@@ -80,7 +80,7 @@ resource "random_string" "random" {
   override_special = "/@£$"
 }
 
-resource "corellium_v1user" "demo" {
+resource "corellium_user" "demo" {
   # Resources are the most important element in the Terraform language. Each resource block describes one or more
   # infrastructure objects, such as virtual networks, compute instances, or higher-level components such as DNS records.
   #
@@ -99,17 +99,17 @@ resource "corellium_v1user" "demo" {
   administrator = false
 }
 
-resource "corellium_v1team" "demo" {
+resource "corellium_team" "demo" {
   label = "demo"
   users = [
-    for user in corellium_v1user.demo : {
+    for user in corellium_user.demo : {
       id = user.id
     }
   ]
 }
 
 # Create a project.
-resource "corellium_v1project" "demo" {
+resource "corellium_project" "demo" {
   name = "demo"
   settings = {
     version         = 1
@@ -122,7 +122,7 @@ resource "corellium_v1project" "demo" {
   users = []
   teams = [
     {
-      id   = corellium_v1team.demo.id
+      id   = corellium_team.demo.id
       role = "admin"
     }
   ]
@@ -130,8 +130,8 @@ resource "corellium_v1project" "demo" {
 }
 
 # Create a instance.
-resource "corellium_v1instance" "demo" {
-  project = corellium_v1project.demo.id
+resource "corellium_instance" "demo" {
+  project = corellium_project.demo.id
   name    = "demo"
   # The flavor "samsung-galaxy-s-duos" is a Samsung Galaxy S Duos (GT-S7562) device and require 2 cores at least.
   flavor = "samsung-galaxy-s-duos"

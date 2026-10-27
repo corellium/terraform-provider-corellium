@@ -19,7 +19,7 @@ resource "tls_private_key" "example" {
   ecdsa_curve = "P384"
 }
 
-resource "corellium_v1project" "example" {
+resource "corellium_project" "example" {
   name = "example"
   settings = {
     version         = 1
@@ -40,8 +40,8 @@ resource "corellium_v1project" "example" {
   ]
 }
 
-resource "corellium_v1instance" "example" {
-  project                = corellium_v1project.example.id
+resource "corellium_instance" "example" {
+  project                = corellium_project.example.id
   name                   = "example"
   flavor                 = "iphone6splus"
   os                     = "13.6.1"
@@ -58,7 +58,7 @@ resource "corellium_v1instance" "example" {
     bastion_host        = "10.11.1.1"
     bastion_private_key = tls_private_key.example.private_key_pem
 
-    user        = corellium_v1project.example.id
+    user        = corellium_project.example.id
     host        = "proxy.enterprise.corellium.com"
     private_key = tls_private_key.example.private_key_pem
   }

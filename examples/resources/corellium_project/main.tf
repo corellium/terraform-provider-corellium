@@ -14,7 +14,7 @@ provider "corellium" {
   token = ""
 }
 
-resource "corellium_v1project" "example" {
+resource "corellium_project" "example" {
   name = "example"
   settings = {
     version         = 1

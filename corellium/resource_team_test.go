@@ -14,7 +14,7 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 	resourceConfigWithoutUsers := func(label string) string {
 		return fmt.Sprintf(
 			`
-		resource "corellium_v1team" "test" {
+		resource "corellium_team" "test" {
 			label = "%s"
 		}
 		`, label,
@@ -24,7 +24,7 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 	resourceConfigOneUser := func(label string) string {
 		return fmt.Sprintf(
 			`
-		resource "corellium_v1user" "test" {
+		resource "corellium_user" "test" {
 			label = "test"
 			name = "test"
 			email = "testing@testing.ai.moda"
@@ -32,11 +32,11 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 			administrator = true
 		}
 
-		resource "corellium_v1team" "test" {
+		resource "corellium_team" "test" {
 			label = "%s"
 			users = [
 				{
-					id = corellium_v1user.test.id
+					id = corellium_user.test.id
 				},
 			]
 		}
@@ -49,7 +49,7 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 		// TODO: create a user in the test and use its ID.
 		return fmt.Sprintf(
 			`
-		resource "corellium_v1user" "test" {
+		resource "corellium_user" "test" {
 			label = "test"
 			name = "test"
 			email = "testing@testing.ai.moda"
@@ -57,7 +57,7 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 			administrator = true
 		}
 
-		resource "corellium_v1user" "user" {
+		resource "corellium_user" "user" {
 			label = "user"
 			name = "user"
 			email = "user@testing.ai.moda"
@@ -65,14 +65,14 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 			administrator = false
 		}
 
-		resource "corellium_v1team" "test" {
+		resource "corellium_team" "test" {
 			label = "%s"
 			users = [
 				{
-					id = corellium_v1user.test.id
+					id = corellium_user.test.id
 				},
                 {
-                    id = corellium_v1user.user.id
+                    id = corellium_user.user.id
                 }
 			]
 		}
@@ -83,7 +83,7 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 	resourceConfigEmptyUsers := func(label string) string {
 		return fmt.Sprintf(
 			`
-		resource "corellium_v1user" "test" {
+		resource "corellium_user" "test" {
 			label = "test"
 			name = "test"
 			email = "testing@testing.ai.moda"
@@ -91,7 +91,7 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 			administrator = true
 		}
 
-		resource "corellium_v1user" "user" {
+		resource "corellium_user" "user" {
 			label = "user"
 			name = "user"
 			email = "user@testing.ai.moda"
@@ -99,7 +99,7 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 			administrator = false
 		}
 
-		resource "corellium_v1team" "test" {
+		resource "corellium_team" "test" {
 			label = "%s"
 			users = []
 		}
@@ -113,51 +113,51 @@ func TestAccCorelliumV1TeamResource(t *testing.T) {
 			{
 				Config: providerConfig + resourceConfigWithoutUsers("test_without_users"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1team.test", "label", "test_without_users"),
-					resource.TestCheckResourceAttr("corellium_v1team.test", "users.#", "0"),
+					resource.TestCheckResourceAttr("corellium_team.test", "label", "test_without_users"),
+					resource.TestCheckResourceAttr("corellium_team.test", "users.#", "0"),
 				),
 			},
 			{
 				Config: providerConfig + resourceConfigWithoutUsers("test_without_users_label_updated"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1team.test", "label", "test_without_users_label_updated"),
-					resource.TestCheckResourceAttr("corellium_v1team.test", "users.#", "0"),
+					resource.TestCheckResourceAttr("corellium_team.test", "label", "test_without_users_label_updated"),
+					resource.TestCheckResourceAttr("corellium_team.test", "users.#", "0"),
 				),
 			},
 			{
 				Config: providerConfig + resourceConfigOneUser("test_with_one_user"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1team.test", "label", "test_with_one_user"),
-					resource.TestCheckResourceAttr("corellium_v1team.test", "users.#", "1"),
+					resource.TestCheckResourceAttr("corellium_team.test", "label", "test_with_one_user"),
+					resource.TestCheckResourceAttr("corellium_team.test", "users.#", "1"),
 				),
 			},
 			{
 				Config: providerConfig + resourceConfigTwoUsers("test_with_two_users"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1team.test", "label", "test_with_two_users"),
-					resource.TestCheckResourceAttr("corellium_v1team.test", "users.#", "2"),
+					resource.TestCheckResourceAttr("corellium_team.test", "label", "test_with_two_users"),
+					resource.TestCheckResourceAttr("corellium_team.test", "users.#", "2"),
 				),
 			},
 			{
 				Config: providerConfig + resourceConfigTwoUsers("test_with_users_label_updated"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1team.test", "label", "test_with_users_label_updated"),
-					resource.TestCheckResourceAttr("corellium_v1team.test", "users.#", "2"),
+					resource.TestCheckResourceAttr("corellium_team.test", "label", "test_with_users_label_updated"),
+					resource.TestCheckResourceAttr("corellium_team.test", "users.#", "2"),
 				),
 			},
 			{
 				Config: providerConfig + resourceConfigEmptyUsers("test_empty_users"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1team.test", "label", "test_empty_users"),
-					resource.TestCheckResourceAttrSet("corellium_v1team.test", "users.#"),
-					resource.TestCheckResourceAttr("corellium_v1team.test", "users.#", "0"),
+					resource.TestCheckResourceAttr("corellium_team.test", "label", "test_empty_users"),
+					resource.TestCheckResourceAttrSet("corellium_team.test", "users.#"),
+					resource.TestCheckResourceAttr("corellium_team.test", "users.#", "0"),
 				),
 			},
 			{
 				Config: providerConfig + resourceConfigTwoUsers("test_with_users_label_updated_again"),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1team.test", "label", "test_with_users_label_updated_again"),
-					resource.TestCheckResourceAttr("corellium_v1team.test", "users.#", "2"),
+					resource.TestCheckResourceAttr("corellium_team.test", "label", "test_with_users_label_updated_again"),
+					resource.TestCheckResourceAttr("corellium_team.test", "users.#", "2"),
 				),
 			},
 		},
@@ -170,7 +170,7 @@ func TestAccCorelliumV1TeamResource_non_enterprise(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfigNonEnterprise + `
-                resource "corellium_v1team" "test" {
+                resource "corellium_team" "test" {
                     label = "test"
                     users = []
                 }

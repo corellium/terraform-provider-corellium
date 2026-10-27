@@ -14,7 +14,7 @@ provider "corellium" {
   token = ""
 }
 
-resource "corellium_v1project" "example" {
+resource "corellium_project" "example" {
   name = "example"
   settings = {
     version         = 1
@@ -29,17 +29,17 @@ resource "corellium_v1project" "example" {
   keys  = []
 }
 
-resource "corellium_v1instance" "example" {
+resource "corellium_instance" "example" {
   name                   = "example"
   flavor                 = "iphone7plus"
   os                     = "15.7.5"
-  project                = corellium_v1project.example.id
+  project                = corellium_project.example.id
   wait_for_ready         = true
   wait_for_ready_timeout = 500
 }
 
-resource "corellium_v1snapshot" "example" {
+resource "corellium_snapshot" "example" {
   name     = "example"
-  instance = corellium_v1instance.example.id
+  instance = corellium_instance.example.id
 }
 

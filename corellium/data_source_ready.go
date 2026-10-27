@@ -3,7 +3,8 @@ package corellium
 import (
 	"context"
 
-	"github.com/aimoda/go-corellium-api-client"
+	corellium "github.com/corellium/corellium-go-api-client"
+	
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -23,7 +24,7 @@ func NewCorelliumV1ReadyDataSource() datasource.DataSource {
 
 // corelliumDataSource is the data source implementation.
 type V1ReadyDataSource struct {
-	client *corellium.APIClient
+	client *corellium.CorelliumClient
 }
 
 // corelliumDataSourceModel maps the data source schema data.
@@ -55,7 +56,7 @@ func (d *V1ReadyDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 func (d *V1ReadyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var state V1ReadyModel
 
-	status, err := d.client.StatusApi.V1Ready(ctx).Execute()
+	status, err := d.client.Status.Ready(ctx).Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to check Corellium status",
@@ -91,5 +92,5 @@ func (d *V1ReadyDataSource) Configure(_ context.Context, req datasource.Configur
 		return
 	}
 
-	d.client = req.ProviderData.(*corellium.APIClient)
+	d.client = req.ProviderData.(*ProviderData).Client
 }

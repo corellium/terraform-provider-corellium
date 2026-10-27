@@ -14,7 +14,7 @@ provider "corellium" {
   token = ""
 }
 
-resource "corellium_v1project" "example" {
+resource "corellium_project" "example" {
   name = "example"
   settings = {
     version         = 1
@@ -29,11 +29,11 @@ resource "corellium_v1project" "example" {
   keys  = []
 }
 
-resource "corellium_v1image" "example" {
+resource "corellium_image" "example" {
   name         = "example"
   type         = "backup"
   filename     = "/tmp/example.img"
   encapsulated = false
-  project      = corellium_v1project.example.id
+  project      = corellium_project.example.id
 }
 

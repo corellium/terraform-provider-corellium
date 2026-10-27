@@ -4,30 +4,31 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/aimoda/go-corellium-api-client"
+	"terraform-provider-corellium/corellium/pkg/api"
+
+	corellium "github.com/corellium/corellium-go-api-client"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.Resource              = &CorelliumV1UserResource{}
-	_ resource.ResourceWithConfigure = &CorelliumV1UserResource{}
+	_ resource.Resource              = &CorelliumUserResource{}
+	_ resource.ResourceWithConfigure = &CorelliumUserResource{}
 )
 
-// NewCorelliumV1UserResource is a helper function to simplify the provider implementation.
-func NewCorelliumV1UserResource() resource.Resource {
-	return &CorelliumV1UserResource{}
+// NewCorelliumUserResource is a helper function to simplify the provider implementation.
+func NewCorelliumUserResource() resource.Resource {
+	return &CorelliumUserResource{}
 }
 
-// CorelliumV1UserResource is the resource implementation.
-type CorelliumV1UserResource struct {
-	client *corellium.APIClient
+// CorelliumUserResource is the resource implementation.
+type CorelliumUserResource struct {
+	client *corellium.CorelliumClient
 }
 
-type V1UserDataModel struct {
+type UserDataModel struct {
 	ID            types.String `tfsdk:"id"`
 	Name          types.String `tfsdk:"name"`
 	Label         types.String `tfsdk:"label"`
@@ -37,15 +38,15 @@ type V1UserDataModel struct {
 }
 
 // Metadata returns the resource type name.
-func (d *CorelliumV1UserResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_v1user"
+func (d *CorelliumUserResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_user"
 	// TypeName is the name of the resource type, which must be unique within the provider.
 	// This is used to identify the resource type in state and plan files.
-	// i.e: resource corellium_v1user "user" { ... }
+	// i.e: resource corellium_user "user" { ... }
 }
 
 // Schema defines the schema for the resource.
-func (d *CorelliumV1UserResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (d *CorelliumUserResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -80,8 +81,8 @@ func (d *CorelliumV1UserResource) Schema(_ context.Context, _ resource.SchemaReq
 }
 
 // Create creates the resource and sets the initial Terraform state.
-func (d *CorelliumV1UserResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var state V1UserDataModel
+func (d *CorelliumUserResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var state UserDataModel
 
 	diags := req.Plan.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -89,19 +90,23 @@ func (d *CorelliumV1UserResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	// API Body expectgs map[string]interface{} as a parameter for the request Body (contains User data)
-	userMap := map[string]interface{}{
-		"name":          state.Name.ValueString(),
-		"label":         state.Label.ValueString(),
-		"email":         state.Email.ValueString(),
-		"password":      state.Password.ValueString(),
-		"administrator": state.Administrator.ValueBool(),
+	email := state.Email.ValueString()
+	administrator := state.Administrator.ValueBool()
+	password := state.Password.ValueString()
+
+	// API Body expectgs CreateUserBody as a parameter for the request Body (contains User data)
+	createUserBody := corellium.CreateUserBody{
+		Name:          state.Name.ValueString(),
+		Label:         state.Label.ValueString(),
+		Email:         &email,
+		Password:      &password,
+		Administrator: &administrator,
 	}
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	// Create the user
 	// Just returns a map[string]interface{} with the user ID
-	createdUser, r, err := d.client.UsersApi.V1CreateUser(auth).Body(userMap).Execute()
+	createdUser, r, err := d.client.Users.Create(auth).CreateUserBody(createUserBody).Execute()
 	if err != nil {
 		if r.StatusCode == http.StatusForbidden {
 			resp.Diagnostics.AddError(
@@ -118,17 +123,16 @@ func (d *CorelliumV1UserResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	userID, ok := createdUser["id"].(string)
-	if !ok {
+	if len(createdUser.Id) == 0 {
 		// Handle the case where the type assertion fails
 		resp.Diagnostics.AddError(
-			"Invalid or missing 'id' field in created user object",
-			userID,
+			"Missing 'id' field in created user object",
+			createdUser.Id,
 		)
 		return
 	}
 
-	state.ID = types.StringValue(userID)
+	state.ID = types.StringValue(createdUser.Id)
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
@@ -138,9 +142,9 @@ func (d *CorelliumV1UserResource) Create(ctx context.Context, req resource.Creat
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (d *CorelliumV1UserResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (d *CorelliumUserResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// UserAPI does NOT have a GetUser endpoint so we will need to use the TeamsAPI to fetch the user data by ID
-	var state V1UserDataModel
+	var state UserDataModel
 
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -149,7 +153,7 @@ func (d *CorelliumV1UserResource) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	teams, _, err := d.client.TeamsApi.V1Teams(auth).Execute()
+	teams, _, err := d.client.Teams.List(auth).Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to fetch the corellium teams",
@@ -159,7 +163,7 @@ func (d *CorelliumV1UserResource) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	// Iterate over the teams and find the user
-	for _, team := range teams {
+	for _, team := range teams.Results {
 		for _, user := range team.Users {
 			if user.Id == state.ID.ValueString() {
 				state.Name = types.StringValue(user.GetName())
@@ -182,9 +186,9 @@ func (d *CorelliumV1UserResource) Read(ctx context.Context, req resource.ReadReq
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
-func (d *CorelliumV1UserResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (d *CorelliumUserResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Retrieve values from state
-	var state V1UserDataModel
+	var state UserDataModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -192,26 +196,31 @@ func (d *CorelliumV1UserResource) Update(ctx context.Context, req resource.Updat
 	}
 
 	// update is the proposed new state of the resource.
-	var update V1UserDataModel
+	var update UserDataModel
 	diags = req.Plan.Get(ctx, &update)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Populate
-	updatedUserMap := map[string]interface{}{
-		"name":          update.Name.ValueString(),
-		"label":         update.Label.ValueString(),
-		"email":         update.Email.ValueString(),
-		"administrator": update.Administrator.ValueBool(),
-		"password":      update.Password.ValueString(),
+	name := update.Name.ValueString()
+	label := update.Label.ValueString()
+	email := update.Email.ValueString()
+	administrator := update.Administrator.ValueBool()
+	password := update.Password.ValueString()
+
+	patchUserBody := corellium.PatchUserBody{
+		Name:          &name,
+		Label:         &label,
+		Email:         &email,
+		Administrator: &administrator,
+		Password:      &password,
 	}
 
 	// Update the user
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	// Takes the user uuID as a parameter and a map[string]interface{} as a body containing the user data to update
-	_, _, err := d.client.UsersApi.V1UpdateUser(auth, state.ID.ValueString()).Body(updatedUserMap).Execute()
+	_, err := d.client.Users.Patch(auth, state.ID.ValueString()).PatchUserBody(patchUserBody).Execute()
 	// Returns an empty body and a 200 status code on success
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -237,9 +246,9 @@ func (d *CorelliumV1UserResource) Update(ctx context.Context, req resource.Updat
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
-func (d *CorelliumV1UserResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (d *CorelliumUserResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Retrieve values from state
-	var state V1UserDataModel
+	var state UserDataModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -249,7 +258,7 @@ func (d *CorelliumV1UserResource) Delete(ctx context.Context, req resource.Delet
 	// Delete the user
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	// Takes the user uuID as a parameter
-	_, _, err := d.client.UsersApi.V1DeleteUser(auth, state.ID.ValueString()).Execute()
+	_, err := d.client.Users.Delete(auth, state.ID.ValueString()).Execute()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to delete the corellium user: "+state.ID.ValueString(),
@@ -260,10 +269,10 @@ func (d *CorelliumV1UserResource) Delete(ctx context.Context, req resource.Delet
 }
 
 // Configure adds the provider configured client to the resource.
-func (d *CorelliumV1UserResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
+func (d *CorelliumUserResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
 
-	d.client = req.ProviderData.(*corellium.APIClient)
+	d.client = req.ProviderData.(*ProviderData).Client
 }

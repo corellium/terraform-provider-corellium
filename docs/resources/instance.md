@@ -1,9 +1,9 @@
-# corellium_v1instance
+# corellium_instance
 
 ## Example
 
 ```terraform
-resource "corellium_v1instance" "example" {
+resource "corellium_instance" "example" {
   name = "example"
   flavor = "iphone7plus"
   project = "00000000-0000-4000-0000-000000000000"
