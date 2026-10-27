@@ -11,16 +11,16 @@ import (
 )
 
 func main() {
-	 flag.Parse()
+	flag.Parse()
 
-    opts := providerserver.ServeOpts{
-        Address: "registry.terraform.io/corellium/corellium",
-        Debug:   *corellium.Debug,
-    }
+	opts := providerserver.ServeOpts{
+		Address: "registry.terraform.io/corellium/corellium",
+		Debug:   *corellium.Debug,
+	}
 
-    err := providerserver.Serve(context.Background(), corellium.New, opts)
+	err := providerserver.Serve(context.Background(), corellium.New, opts)
 
-    if err != nil {
-        log.Fatal(err.Error())
-    }
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 }

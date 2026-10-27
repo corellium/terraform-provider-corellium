@@ -4,7 +4,7 @@ import (
 	"context"
 
 	corellium "github.com/corellium/corellium-go-api-client"
-	
+
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"

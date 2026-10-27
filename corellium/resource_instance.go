@@ -1003,7 +1003,7 @@ func (d *CorelliumInstanceResource) Update(ctx context.Context, req resource.Upd
 			Label:    types.StringValue(createdBy.GetLabel()),
 			Deleted:  types.BoolValue(createdBy.GetDeleted()),
 		}
-	}else{
+	} else {
 		state.CreatedBy = nil
 	}
 
