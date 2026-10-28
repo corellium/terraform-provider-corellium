@@ -1,9 +1,9 @@
-# corellium_v1user
+# corellium_user
 
 ## Example
 
 ```terraform
-resource "corellium_v1user" "example" {
+resource "corellium_user" "example" {
   name = "example"
   label = "example"
   email = "example@email.com"

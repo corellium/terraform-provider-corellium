@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     corellium = {
-      source  = "github.com/aimoda/corellium"
+      source  = "corellium/corellium"
       version = "~> 1.0.0"
     }
   }
@@ -20,7 +20,7 @@ resource "random_string" "random" {
   override_special = "/@£$"
 }
 
-resource "corellium_v1user" "example" {
+resource "corellium_user" "example" {
   label         = "example"
   name          = "example"
   email         = "example@testing.email.ai.moda"

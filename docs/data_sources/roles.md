@@ -1,9 +1,9 @@
-# corellium_v1roles
+# corellium_roles
 
 ## Example
 
 ```terraform
-data "corellium_v1roles" "example" {
+data "corellium_roles" "example" {
   project = "00000000-0000-4000-0000-000000000000"
 }
 ```

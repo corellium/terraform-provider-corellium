@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"terraform-provider-corellium/corellium/pkg/api"
 
-	"github.com/aimoda/go-corellium-api-client"
+	corellium "github.com/corellium/corellium-go-api-client"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -18,21 +18,23 @@ import (
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.Resource              = &CorelliumV1WebPlayerResource{}
-	_ resource.ResourceWithConfigure = &CorelliumV1WebPlayerResource{}
+	_ resource.Resource              = &CorelliumWebPlayerResource{}
+	_ resource.ResourceWithConfigure = &CorelliumWebPlayerResource{}
 )
 
 // helper function to simplify the provider implementation.
-func NewCorelliumV1WebPlayerResource() resource.Resource {
-	return &CorelliumV1WebPlayerResource{}
+func NewCorelliumWebPlayerResource() resource.Resource {
+	return &CorelliumWebPlayerResource{}
 }
 
 // the resource implementation.
-type CorelliumV1WebPlayerResource struct {
-	client *corellium.APIClient
+type CorelliumWebPlayerResource struct {
+	client     *corellium.CorelliumClient
+	host       string
+	httpClient *http.Client
 }
 
-type V1WebPlayerDataModel struct {
+type WebPlayerDataModel struct {
 	ID         types.String `tfsdk:"id"`
 	InstanceId types.String `tfsdk:"instanceid"`
 	Identifier types.String `tfsdk:"identifier"`
@@ -70,12 +72,12 @@ type Features struct {
 }
 
 // Metadata returns the resource type name.
-func (d *CorelliumV1WebPlayerResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_v1webplayer"
+func (d *CorelliumWebPlayerResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_webplayer"
 }
 
 // Schema defines the schema for the resource.
-func (d *CorelliumV1WebPlayerResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (d *CorelliumWebPlayerResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -188,8 +190,8 @@ func (d *CorelliumV1WebPlayerResource) Schema(_ context.Context, _ resource.Sche
 }
 
 // Create creates the resource and sets the initial Terraform state.
-func (d *CorelliumV1WebPlayerResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var state V1WebPlayerDataModel
+func (d *CorelliumWebPlayerResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var state WebPlayerDataModel
 
 	diags := req.Plan.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -197,30 +199,30 @@ func (d *CorelliumV1WebPlayerResource) Create(ctx context.Context, req resource.
 		return
 	}
 
-	webPlayerFeatures := corellium.NewFeatures()
-	webPlayerFeatures.Apps.Set(state.Features.Apps.ValueBoolPointer())
-	webPlayerFeatures.Console.Set(state.Features.Console.ValueBoolPointer())
-	webPlayerFeatures.Coretrace.Set(state.Features.Coretrace.ValueBoolPointer())
-	webPlayerFeatures.DeviceControl.Set(state.Features.DeviceControl.ValueBoolPointer())
-	webPlayerFeatures.DeviceDelete.Set(state.Features.DeviceDelete.ValueBoolPointer())
-	webPlayerFeatures.Files.Set(state.Features.Files.ValueBoolPointer())
-	webPlayerFeatures.Frida.Set(state.Features.Frida.ValueBoolPointer())
-	webPlayerFeatures.Images.Set(state.Features.Images.ValueBoolPointer())
-	webPlayerFeatures.Messaging.Set(state.Features.Messaging.ValueBoolPointer())
-	webPlayerFeatures.Netmon.Set(state.Features.Netmon.ValueBoolPointer())
-	webPlayerFeatures.Network.Set(state.Features.Network.ValueBoolPointer())
-	webPlayerFeatures.PortForwarding.Set(state.Features.PortForwarding.ValueBoolPointer())
-	webPlayerFeatures.Profile.Set(state.Features.Profile.ValueBoolPointer())
-	webPlayerFeatures.Sensors.Set(state.Features.Sensors.ValueBoolPointer())
-	webPlayerFeatures.Settings.Set(state.Features.Settings.ValueBoolPointer())
-	webPlayerFeatures.Snapshots.Set(state.Features.Snapshots.ValueBoolPointer())
-	webPlayerFeatures.Strace.Set(state.Features.Strace.ValueBoolPointer())
-	webPlayerFeatures.System.Set(state.Features.System.ValueBoolPointer())
-	webPlayerFeatures.Connect.Set(state.Features.Connect.ValueBoolPointer())
+	webPlayerFeatures := corellium.NewWebPlayerFeatures()
+	webPlayerFeatures.SetApps(state.Features.Apps.ValueBool())
+	webPlayerFeatures.SetConsole((state.Features.Console.ValueBool()))
+	webPlayerFeatures.SetCoretrace(state.Features.Coretrace.ValueBool())
+	webPlayerFeatures.SetDeviceControl(state.Features.DeviceControl.ValueBool())
+	webPlayerFeatures.SetDeviceDelete(state.Features.DeviceDelete.ValueBool())
+	webPlayerFeatures.SetFiles(state.Features.Files.ValueBool())
+	webPlayerFeatures.SetFrida(state.Features.Frida.ValueBool())
+	webPlayerFeatures.SetImages(state.Features.Images.ValueBool())
+	webPlayerFeatures.SetMessaging(state.Features.Messaging.ValueBool())
+	webPlayerFeatures.SetNetmon(state.Features.Netmon.ValueBool())
+	webPlayerFeatures.SetNetwork(state.Features.Network.ValueBool())
+	webPlayerFeatures.SetPortForwarding(state.Features.PortForwarding.ValueBool())
+	webPlayerFeatures.SetProfile(state.Features.Profile.ValueBool())
+	webPlayerFeatures.SetSensors(state.Features.Sensors.ValueBool())
+	webPlayerFeatures.SetSettings(state.Features.Settings.ValueBool())
+	webPlayerFeatures.SetSnapshots(state.Features.Snapshots.ValueBool())
+	webPlayerFeatures.SetStrace(state.Features.Strace.ValueBool())
+	webPlayerFeatures.SetSystem(state.Features.System.ValueBool())
+	webPlayerFeatures.SetConnect(state.Features.Connect.ValueBool())
 
 	// Check to see if Instance exists. Corellium does a check for project and not for instance.
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	instance, r, err := d.client.InstancesApi.V1GetInstance(auth, state.InstanceId.ValueString()).Execute()
+	instance, r, err := d.client.Instances.Get(auth, state.InstanceId.ValueString()).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -238,7 +240,7 @@ func (d *CorelliumV1WebPlayerResource) Create(ctx context.Context, req resource.
 		return
 	}
 
-	if instance == nil || !instance.HasId() {
+	if instance == nil || len(instance.GetId()) == 0 {
 		resp.Diagnostics.AddError(
 			"Error! Instance with instanceId= "+state.InstanceId.ValueString()+" not found",
 			"The instance with id "+state.InstanceId.ValueString()+" does not exist",
@@ -246,24 +248,22 @@ func (d *CorelliumV1WebPlayerResource) Create(ctx context.Context, req resource.
 		return
 	}
 
-	webPlayerRequest := corellium.NewWebPlayerCreateSessionRequest(
-		state.Project.ValueString(),
-		state.InstanceId.ValueString(),
-		float32(state.Expiresinseconds.ValueFloat64()), //3600
-		*webPlayerFeatures,
-	)
+	projectId := state.Project.ValueString()
+	instanceId := state.InstanceId.ValueString()
+	expiresIn := float32(state.Expiresinseconds.ValueFloat64())
 
-	session, r, err := d.client.WebPlayerApi.V1WebPlayerCreateSession(auth).WebPlayerCreateSessionRequest(*webPlayerRequest).Execute()
+	createWebPlayerSessionBody := corellium.NewCreateWebPlayerSessionBody(projectId, instanceId, expiresIn, *webPlayerFeatures)
+	session, r, err := d.client.WebPlayer.Create(auth).CreateWebPlayerSessionBody(*createWebPlayerSessionBody).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
-            if r.StatusCode == http.StatusForbidden {
-                resp.Diagnostics.AddError(
-                    "Error creating a web player session",
-                    "You don't have permission to create a web player session",
-                )
-                return
-            }
+			if r.StatusCode == http.StatusForbidden {
+				resp.Diagnostics.AddError(
+					"Error creating a web player session",
+					"You don't have permission to create a web player session",
+				)
+				return
+			}
 			resp.Diagnostics.AddError(
 				"Error creating a web player session",
 				"Coudn't read the response body: "+err.Error(),
@@ -326,8 +326,8 @@ func (d *CorelliumV1WebPlayerResource) Create(ctx context.Context, req resource.
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (d *CorelliumV1WebPlayerResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state V1WebPlayerDataModel
+func (d *CorelliumWebPlayerResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state WebPlayerDataModel
 
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -337,11 +337,11 @@ func (d *CorelliumV1WebPlayerResource) Read(ctx context.Context, req resource.Re
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 
-	var sessions []V1WebPlayerDataModelManual
+	var sessions []WebPlayerDataModelManual
 	var err error
-	sessions, err = V1GetWebPlayerManual(auth, "https://moda.enterprise.corellium.com/api", state.Identifier.ValueString())
+	sessions, err = GetWebPlayerManual(auth, d.httpClient, "https://"+d.host+"/api", state.Identifier.ValueString())
 
-	// session, r, err := d.client.WebPlayerApi.V1WebPlayerSessionInfo(auth, state.Identifier.ValueString()).Execute()
+	// session, r, err := d.client.WebPlayerApi.WebPlayerSessionInfo(auth, state.Identifier.ValueString()).Execute()
 	if err != nil {
 		// b, err := io.ReadAll(r.Body)
 		// if err != nil {
@@ -405,13 +405,13 @@ func (d *CorelliumV1WebPlayerResource) Read(ctx context.Context, req resource.Re
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
-func (d *CorelliumV1WebPlayerResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (d *CorelliumWebPlayerResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	//No update endpoint for the WebPlayerAPI
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
-func (d *CorelliumV1WebPlayerResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state V1WebPlayerDataModel
+func (d *CorelliumWebPlayerResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state WebPlayerDataModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -419,7 +419,7 @@ func (d *CorelliumV1WebPlayerResource) Delete(ctx context.Context, req resource.
 	}
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	r, err := d.client.WebPlayerApi.V1WebPlayerDestroySession(auth, state.Identifier.ValueString()).Execute()
+	r, err := d.client.WebPlayer.Delete(auth, state.Identifier.ValueString()).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -440,17 +440,20 @@ func (d *CorelliumV1WebPlayerResource) Delete(ctx context.Context, req resource.
 }
 
 // Configure adds the provider configured client to the resource.
-func (d *CorelliumV1WebPlayerResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
+func (d *CorelliumWebPlayerResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
 
-	d.client = req.ProviderData.(*corellium.APIClient)
+	providerData := req.ProviderData.(*ProviderData)
+	d.client = providerData.Client
+	d.host = providerData.Host
+	d.httpClient = providerData.HTTPClient
 }
 
 // *******************************************************************************************************************************
 // Custom struct and methods for the WebPlayerAPI that serve as a workaround for the current state of the API.
-type V1WebPlayerDataModelManual struct {
+type WebPlayerDataModelManual struct {
 	InstanceId       string  `tfsdk:"instanceid"`
 	Identifier       string  `tfsdk:"identifier"`
 	Project          string  `tfsdk:"project"`
@@ -486,9 +489,9 @@ type FeaturesManual struct {
 	Connect        bool `tfsdk:"connect"`
 }
 
-func V1GetWebPlayerManual(ctx context.Context, url string, sessionId string) ([]V1WebPlayerDataModelManual, error) {
-	client := &http.Client{}
-
+// client should be the provider's HTTP client so TLS verification matches the
+// main API client.
+func GetWebPlayerManual(ctx context.Context, client *http.Client, url string, sessionId string) ([]WebPlayerDataModelManual, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url+"/v1/webplayer/"+sessionId, nil)
 	if err != nil {
 		return nil, err
@@ -511,7 +514,7 @@ func V1GetWebPlayerManual(ctx context.Context, url string, sessionId string) ([]
 		return nil, fmt.Errorf("error fetching firmware data: %s", resp.Status)
 	}
 
-	var sessions []V1WebPlayerDataModelManual
+	var sessions []WebPlayerDataModelManual
 	err = json.NewDecoder(resp.Body).Decode(&sessions)
 	if err != nil {
 		return nil, err

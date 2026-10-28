@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/aimoda/go-corellium-api-client"
+	corellium "github.com/corellium/corellium-go-api-client"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -28,7 +28,7 @@ func NewCorelliumV1RolesDataSource() datasource.DataSource {
 
 // V1RolesDataSource is the data source implementation.
 type V1RolesDataSource struct {
-	client *corellium.APIClient
+	client *corellium.CorelliumClient
 }
 
 type V1RoleModel struct {
@@ -41,7 +41,7 @@ type V1RoleModel struct {
 }
 
 // V1RolesModel maps the data source schema data.
-// https://github.com/aimoda/go-corellium-api-client/blob/main/docs/RolesApi.md#v1roles
+// https://github.com/corellium/corellium-go-api-client/blob/main/docs/RolesApi.md#v1roles
 type V1RolesModel struct {
 	// Id is the data source required Id.
 	// Each data source should has a Id.
@@ -57,10 +57,10 @@ type V1RolesModel struct {
 
 // Metadata returns the data source type name.
 func (d *V1RolesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_v1roles"
+	resp.TypeName = req.ProviderTypeName + "_roles"
 	// TypeName is the name of the data resource type, which must be unique within the provider.
 	// This is used to identify the data resource type in state and plan files.
-	// i.e: data corellium_v1roles "roles" { ... }
+	// i.e: data corellium_roles "roles" { ... }
 }
 
 // Schema defines the schema for the data source.
@@ -117,7 +117,7 @@ func (d *V1RolesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	// auth is the context with the access token, what is required by the API client.
-	roles, r, err := d.client.RolesApi.V1Roles(auth).Execute()
+	roles, r, err := d.client.Roles.List(auth).Execute()
 	if err != nil {
 		if r.StatusCode == http.StatusForbidden {
 			resp.Diagnostics.AddError(
@@ -143,7 +143,7 @@ func (d *V1RolesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	if len(roles) == 0 {
+	if len(roles.Results) == 0 {
 		resp.Diagnostics.AddWarning(
 			"No roles found",
 			"No roles were found for the given project and user.",
@@ -163,19 +163,19 @@ func (d *V1RolesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	// If the project is set, but no roles are found, we return all the roles from all projects and users.
 	var found bool
 	if !state.Project.IsNull() {
-		for _, role := range roles {
+		for _, role := range roles.Results {
 			if role.GetProject() == state.Project.ValueString() {
 				found = true
 
-				appendRoleToState(role.Role, role.Project, role.User)
+				appendRoleToState(string(role.Role), *role.Project, *role.User)
 			}
 		}
 	}
 
 	// If the project is not set, we return all the roles from all projects and users.
 	if !found {
-		for _, role := range roles {
-			appendRoleToState(role.Role, role.Project, role.User)
+		for _, role := range roles.Results {
+			appendRoleToState(string(role.Role), *role.Project, *role.User)
 		}
 	}
 
@@ -204,5 +204,5 @@ func (d *V1RolesDataSource) Configure(_ context.Context, req datasource.Configur
 		return
 	}
 
-	d.client = req.ProviderData.(*corellium.APIClient)
+	d.client = req.ProviderData.(*ProviderData).Client
 }

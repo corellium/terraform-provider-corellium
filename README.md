@@ -8,11 +8,12 @@
 
 # Terraform Corellium Provider
 
+![Unit Tests CI](https://github.com/corellium/terraform-provider-corellium/actions/workflows/unit-tests.yml/badge.svg)
 ![Acceptance Tests CI](https://github.com/corellium/terraform-provider-corellium/actions/workflows/acceptance-tests.yml/badge.svg)
 ![Terraform Registry release CI](https://github.com/corellium/terraform-provider-corellium/actions/workflows/terraform-release.yml/badge.svg)
 ![Examples QA CI](https://github.com/corellium/terraform-provider-corellium/actions/workflows/examples-qa.yml/badge.svg)
 
-The Corellium allows [Terraform](https://terraform.io) to manage [Corellium](https://www.corellium.com/?utm_source=github.com&utm_content=terraform-provider-corellium&utm_medium=github&utm_campaign=aimoda) resources.
+The Corellium allows [Terraform](https://terraform.io) to manage [Corellium](https://www.corellium.com/?utm_source=github.com&utm_content=terraform-provider-corellium&utm_medium=github) resources.
 
 - Examples can be found in the [examples](examples/) directory.
 - Documentation can be found in the [docs](docs/) directory. At the same directory, you can find `demo.tf` file which contains all a small usage example.
@@ -21,66 +22,123 @@ _**Please note:** If you believe you have found a security issue in the Terrafor
 
 ## Requirements
 
-- [Terraform](https://www.terraform.io/downloads.html) 0.13.x or higher
+- [Terraform](https://www.terraform.io/downloads.html) 1.0 or higher
 
-- [Go](https://golang.org/doc/install) 1.20.x (to build the provider plugin)
+- [Go](https://golang.org/doc/install) 1.24.x (if you want to build the provider plugin)
 
-## Usage
+## Quick Start
 
-This is a simple example of creating a project and multiple iOS versions at once.
+This is a simple example of creating a project with multiple devices at once.
 
-```terraform
+### Set the provider version in the 'required_providers' block
+
+```
 terraform {
   required_providers {
     corellium = {
       source  = "corellium/corellium"
-      version = "0.0.2-alpha"
+      version = "<provider version here>"
     }
   }
 }
+```
 
+### Set the provider host and API token
+
+```
 provider "corellium" {
-  token = ""
+  token = "<API key here>"
+  host = "<host machine here>"
 }
+```
 
-resource "corellium_v1project" "backtesting" {
-  name = "ios_backtesting"
+### Alternatively, you can set host and token as environment variables. This would help avoid pushing the token to source control by mistake
+
+```
+provider "corellium" {
+
+}
+```
+
+And set the environment variable in your terminal
+
+Linux:
+
+```
+export CORELLIUM_API_TOKEN="<your token here>"
+export CORELLIUM_API_HOST="<host machine here>"
+```
+
+Windows:
+
+```
+set CORELLIUM_API_TOKEN="<your token here>"
+set CORELLIUM_API_HOST="<host machine here>"
+```
+
+
+
+### Define a project. Set the number of cores it uses and other settings
+
+```
+resource "corellium_project" "proj" {
+  name = "demo_project"
   settings = {
     version         = 1
     internet_access = false
-    dhcp            = false
+    dhcp            = true
   }
   quotas = {
-    cores = 60
+    cores = 20
   }
   users = []
   teams = []
   keys = []
 }
+```
 
-variable "ios_versions" {
-  default = ["16.0", "16.0.2", "16.0.3", "16.1", "16.1.1", "16.1.2", "16.2", "16.3", "16.3.1", "16.4"]
-  type    = set(string)
+### Define the devices that are part of the project
+
+```
+resource "corellium_instance" "android" {
+   project = corellium_project.proj.id
+   name    = "Demo Android"
+   flavor  = "ranchu"
+   os_version      = "16.0.0"
+   os_build = "r2 userdebug"
 }
-
-resource "corellium_v1instance" "test_instance" {
-  for_each = var.ios_versions
-  name     = "version_${each.key}"
-  flavor   = "iphone8plus"
-  project  = corellium_v1project.backtesting.id
-  os       = each.key
+ 
+resource "corellium_instance" "ios" {
+   name     = "Demo iOS2"
+   flavor   = "iphone17e"
+   project  = corellium_project.proj.id
+   os_version       = "26.5.2"
+   os_build = "23F84"
 }
 ```
 
 Then, run:
 
-```sh
-CORELLIUM_API_TOKEN="YOUR.API_KEY_HERE" CORELLIUM_API_HOST="YOURDOMAIN.enterprise.corellium.com" terraform apply
+```
+terraform init
+```
+
+This will initialize the provider. To see the plan summary, run:
+
+```
+terraform plan
+```
+
+If everything looks good, apply the configuration: (type 'yes' to approve when prompt)
+
+```
+terraform apply 
 ```
 
 To tear down everything that was created, run:
-```sh
-CORELLIUM_API_TOKEN="YOUR.API_KEY_HERE" CORELLIUM_API_HOST="YOURDOMAIN.enterprise.corellium.com" terraform destroy
+
+```
+terraform destroy 
 ```
 
 <a href="https://www.ai.moda/en/?utm_source=github.com&utm_content=terraform-provider-corellium&utm_medium=github">

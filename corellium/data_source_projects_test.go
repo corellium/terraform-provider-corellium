@@ -12,10 +12,10 @@ func TestAccCorelliumV1ProjectsDataSource(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
-                data "corellium_v1projects" "test" {}
+                data "corellium_projects" "test" {}
                 `,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.corellium_v1projects.test", "projects.#"),
+					resource.TestCheckResourceAttrSet("data.corellium_projects.test", "projects.#"),
 				),
 			},
 		},
@@ -28,10 +28,10 @@ func TestAccCorelliumV1ProjectsDataSource_non_enterprise(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfigNonEnterprise + `
-                data "corellium_v1projects" "test" {}
+                data "corellium_projects" "test" {}
                 `,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.corellium_v1projects.test", "projects.#"),
+					resource.TestCheckResourceAttrSet("data.corellium_projects.test", "projects.#"),
 				),
 			},
 		},

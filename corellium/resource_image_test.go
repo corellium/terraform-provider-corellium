@@ -24,7 +24,7 @@ func TestAccCorelliumV1ImageResource(t *testing.T) {
 	}
 
 	projectConfig := `
-    resource "corellium_v1project" "test" {
+    resource "corellium_project" "test" {
         name = "test"
         settings = {
             version = 1
@@ -46,20 +46,20 @@ func TestAccCorelliumV1ImageResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + projectConfig + `
-                resource "corellium_v1image" "test" {
+                resource "corellium_image" "test" {
                     name = "test"
                     type = "backup"
                     filename = "/tmp/image.txt"
                     encapsulated = false
-                    project = corellium_v1project.test.id
+                    project = corellium_project.test.id
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1image.test", "name", "test"),
-					resource.TestCheckResourceAttr("corellium_v1image.test", "type", "backup"),
-					resource.TestCheckResourceAttr("corellium_v1image.test", "filename", "/tmp/image.txt"),
-					resource.TestCheckResourceAttr("corellium_v1image.test", "encapsulated", "false"),
-					resource.TestCheckResourceAttrSet("corellium_v1image.test", "project"),
+					resource.TestCheckResourceAttr("corellium_image.test", "name", "test"),
+					resource.TestCheckResourceAttr("corellium_image.test", "type", "backup"),
+					resource.TestCheckResourceAttr("corellium_image.test", "filename", "/tmp/image.txt"),
+					resource.TestCheckResourceAttr("corellium_image.test", "encapsulated", "false"),
+					resource.TestCheckResourceAttrSet("corellium_image.test", "project"),
 				),
 			},
 		},
@@ -87,22 +87,22 @@ func TestAccCorelliumV1ImageResource_non_enterprise(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfigNonEnterprise + `
-                data "corellium_v1projects" "test" {}
+                data "corellium_projects" "test" {}
 
-                resource "corellium_v1image" "test" {
+                resource "corellium_image" "test" {
                     name = "test"
                     type = "backup"
                     filename = "/tmp/image.txt"
                     encapsulated = false
-                    project = data.corellium_v1projects.test.projects[0].id
+                    project = data.corellium_projects.test.projects[0].id
                 }
                 `,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("corellium_v1image.test", "name", "test"),
-					resource.TestCheckResourceAttr("corellium_v1image.test", "type", "backup"),
-					resource.TestCheckResourceAttr("corellium_v1image.test", "filename", "/tmp/image.txt"),
-					resource.TestCheckResourceAttr("corellium_v1image.test", "encapsulated", "false"),
-					resource.TestCheckResourceAttrSet("corellium_v1image.test", "project"),
+					resource.TestCheckResourceAttr("corellium_image.test", "name", "test"),
+					resource.TestCheckResourceAttr("corellium_image.test", "type", "backup"),
+					resource.TestCheckResourceAttr("corellium_image.test", "filename", "/tmp/image.txt"),
+					resource.TestCheckResourceAttr("corellium_image.test", "encapsulated", "false"),
+					resource.TestCheckResourceAttrSet("corellium_image.test", "project"),
 				),
 			},
 		},

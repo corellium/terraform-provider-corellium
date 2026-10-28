@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     corellium = {
-      source  = "github.com/aimoda/corellium"
+      source  = "corellium/corellium"
       version = "~> 1.0.0"
     }
   }
@@ -14,7 +14,7 @@ provider "corellium" {
   token = ""
 }
 
-resource "corellium_v1project" "example" {
+resource "corellium_project" "example" {
   name = "example"
   settings = {
     version         = 1
@@ -29,16 +29,17 @@ resource "corellium_v1project" "example" {
   keys  = []
 }
 
-resource "corellium_v1instance" "example" {
-  name    = "example"
-  flavor  = "ranchu"
-  project = corellium_v1project.example.id
-  os      = "7.1.2"
+resource "corellium_instance" "example" {
+  name       = "example"
+  flavor     = "ranchu"
+  project    = corellium_project.example.id
+  os_version = "7.1.2"
+  os_build   = ""
 }
 
-resource "corellium_v1webplayer" "example" {
-  project          = corellium_v1project.example.id
-  instanceid       = corellium_v1instance.example.id
+resource "corellium_webplayer" "example" {
+  project          = corellium_project.example.id
+  instanceid       = corellium_instance.example.id
   expiresinseconds = "1800"
   features = {
     apps           = false

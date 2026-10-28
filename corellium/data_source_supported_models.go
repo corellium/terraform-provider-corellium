@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/aimoda/go-corellium-api-client"
+	corellium "github.com/corellium/corellium-go-api-client"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -25,7 +25,7 @@ func NewCorelliumV1SupportedModelsDataSource() datasource.DataSource {
 
 // corelliumDataSource is the data source implementation.
 type V1SupportedModelsDataSource struct {
-	client *corellium.APIClient
+	client *corellium.CorelliumClient
 }
 
 type V1SupportedModelsDataSourceModel struct {
@@ -56,7 +56,7 @@ type V1SupportModelsModel struct {
 
 // Metadata returns the data source type name.
 func (d *V1SupportedModelsDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_v1supportedmodels"
+	resp.TypeName = req.ProviderTypeName + "_supportedmodels"
 }
 
 // Schema defines the schema for the data source.
@@ -124,7 +124,7 @@ func (d *V1SupportedModelsDataSource) Read(ctx context.Context, req datasource.R
 	var state V1SupportedModelsDataSourceModel
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	models, r, err := d.client.ModelsApi.V1GetModels(auth).Execute()
+	models, r, err := d.client.Models.List(auth).Execute()
 	if err != nil {
 		if r.StatusCode == http.StatusForbidden {
 			resp.Diagnostics.AddError(
@@ -142,8 +142,8 @@ func (d *V1SupportedModelsDataSource) Read(ctx context.Context, req datasource.R
 	// Map response body to model
 	for _, model := range models {
 		modelState := V1SupportModelsModel{
-			Type:        types.StringValue(model.GetType()),
-			Name:        types.StringValue(model.GetName()),
+			Type: types.StringValue(model.GetType()),
+			//Name:        types.StringValue(model.GetName()),
 			Model:       types.StringValue(model.GetModel()),
 			Flavor:      types.StringValue(model.GetFlavor()),
 			Description: types.StringValue(model.GetDescription()),
@@ -189,5 +189,5 @@ func (d *V1SupportedModelsDataSource) Configure(_ context.Context, req datasourc
 		return
 	}
 
-	d.client = req.ProviderData.(*corellium.APIClient)
+	d.client = req.ProviderData.(*ProviderData).Client
 }

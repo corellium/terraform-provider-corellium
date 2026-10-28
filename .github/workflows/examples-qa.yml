@@ -51,8 +51,8 @@ jobs:
       - name: Installing provider
         run: |
           make build 
-          mkdir -p ~/.terraform.d/plugins/github.com/aimoda/corellium/1.0.0/linux_amd64/
-          cp terraform-provider-corellium ~/.terraform.d/plugins/github.com/aimoda/corellium/1.0.0/linux_amd64/
+          mkdir -p ~/.terraform.d/plugins/registry.terraform.io/corellium/corellium/1.0.0/linux_amd64/
+          cp terraform-provider-corellium ~/.terraform.d/plugins/registry.terraform.io/corellium/corellium/1.0.0/linux_amd64/
       
       - name: Check formatting
         run: terraform fmt -check -recursive ./examples

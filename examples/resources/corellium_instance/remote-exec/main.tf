@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     corellium = {
-      source  = "github.com/aimoda/corellium"
+      source  = "corellium/corellium"
       version = "~> 1.0.0"
     }
   }
@@ -19,7 +19,7 @@ resource "tls_private_key" "example" {
   ecdsa_curve = "P384"
 }
 
-resource "corellium_v1project" "example" {
+resource "corellium_project" "example" {
   name = "example"
   settings = {
     version         = 1
@@ -40,11 +40,12 @@ resource "corellium_v1project" "example" {
   ]
 }
 
-resource "corellium_v1instance" "example" {
-  project                = corellium_v1project.example.id
+resource "corellium_instance" "example" {
+  project                = corellium_project.example.id
   name                   = "example"
   flavor                 = "iphone6splus"
-  os                     = "13.6.1"
+  os_version             = "13.6.1"
+  os_build               = "17G80"
   wait_for_ready         = true
   wait_for_ready_timeout = 900
 
@@ -58,7 +59,7 @@ resource "corellium_v1instance" "example" {
     bastion_host        = "10.11.1.1"
     bastion_private_key = tls_private_key.example.private_key_pem
 
-    user        = corellium_v1project.example.id
+    user        = corellium_project.example.id
     host        = "proxy.enterprise.corellium.com"
     private_key = tls_private_key.example.private_key_pem
   }

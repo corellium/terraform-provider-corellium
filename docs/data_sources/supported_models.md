@@ -1,9 +1,9 @@
-# corellium_v1supportedmodels
+# corellium_supportedmodels
 
 ## Example
 
 ```terraform
-data "corellium_v1supportedmodels" "example" {}
+data "corellium_supportedmodels" "example" {}
 ```
 
 ## Schema

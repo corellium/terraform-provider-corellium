@@ -7,34 +7,34 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/aimoda/go-corellium-api-client"
+	"terraform-provider-corellium/corellium/pkg/api"
+
+	corellium "github.com/corellium/corellium-go-api-client"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.Resource              = &CorelliumV1ImageResource{}
-	_ resource.ResourceWithConfigure = &CorelliumV1ImageResource{}
+	_ resource.Resource              = &CorelliumImageResource{}
+	_ resource.ResourceWithConfigure = &CorelliumImageResource{}
 )
 
-// NewCorelliumV1ImageResource is a helper function to simplify the provider implementation.
-func NewCorelliumV1ImageResource() resource.Resource {
-	return &CorelliumV1ImageResource{}
+// NewCorelliumImageResource is a helper function to simplify the provider implementation.
+func NewCorelliumImageResource() resource.Resource {
+	return &CorelliumImageResource{}
 }
 
-// CorelliumV1ImageResource is the resource implementation.
-type CorelliumV1ImageResource struct {
-	client *corellium.APIClient
+// CorelliumImageResource is the resource implementation.
+type CorelliumImageResource struct {
+	client *corellium.CorelliumClient
 }
 
-// V1ImageModel maps the resource schema data.
-// https://github.com/aimoda/go-corellium-api-client/blob/main/docs/Image.md
-type V1ImageModel struct {
+// ImageModel maps the resource schema data
+type ImageModel struct {
 	Status types.String `tfsdk:"status"`
 	// Id is the image ID.
 	Id types.String `tfsdk:"id"`
@@ -47,8 +47,6 @@ type V1ImageModel struct {
 	Filename types.String `tfsdk:"filename"`
 	// Encapsulated is the image encapsulated flag.
 	Encapsulated types.Bool `tfsdk:"encapsulated"`
-	// Uniqueid is the image unique ID.
-	Uniqueid types.String `tfsdk:"unique_id"`
 	// Size is the image size.
 	Size types.Number `tfsdk:"size"`
 	// Project is the project ID.
@@ -58,15 +56,15 @@ type V1ImageModel struct {
 }
 
 // Metadata returns the resource type name.
-func (d *CorelliumV1ImageResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_v1image"
+func (d *CorelliumImageResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_image"
 	// TypeName is the name of the resource type, which must be unique within the provider.
 	// This is used to identify the resource type in state and plan files.
-	// i.e: resource corellium_v1image "image" { ... }
+	// i.e: resource corellium_image "image" { ... }
 }
 
 // Schema defines the schema for the resource.
-func (d *CorelliumV1ImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (d *CorelliumImageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"status": schema.StringAttribute{
@@ -95,10 +93,6 @@ func (d *CorelliumV1ImageResource) Schema(_ context.Context, _ resource.SchemaRe
 				Description: "Image encapsulated flag",
 				Required:    true,
 			},
-			"unique_id": schema.StringAttribute{
-				Description: "Image unique ID",
-				Computed:    true,
-			},
 			"size": schema.NumberAttribute{
 				Description: "Image size",
 				Computed:    true,
@@ -116,12 +110,21 @@ func (d *CorelliumV1ImageResource) Schema(_ context.Context, _ resource.SchemaRe
 }
 
 // Create creates the resource and sets the initial Terraform state.
-func (d *CorelliumV1ImageResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan V1ImageModel
+func (d *CorelliumImageResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan ImageModel
 
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	imageType, err := corellium.NewImageTypeFromValue(plan.Type.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Invalid image type",
+			"The image type is not supported: "+err.Error(),
+		)
 		return
 	}
 
@@ -133,17 +136,15 @@ func (d *CorelliumV1ImageResource) Create(ctx context.Context, req resource.Crea
 		)
 		return
 	}
+	createImageBody := corellium.NewCreateImageBody(*imageType, corellium.IMAGEENCODING_PLAIN)
+	createImageBody.SetName(plan.Name.ValueString())
+	createImageBody.SetEncapsulated(plan.Encapsulated.ValueBool())
+	createImageBody.SetProjectId(plan.Project.ValueString())
+	createImageBody.SetFile(file)
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	// auth is the context with the access token, what is required by the API client.
-	image, r, err := d.client.ImagesApi.V1CreateImage(auth).
-		Encoding("plain").
-		Name(plan.Name.ValueString()).
-		Type_(plan.Type.ValueString()).
-		File(file).
-		Encapsulated(plan.Encapsulated.ValueBool()).
-		Project(plan.Project.ValueString()).
-		Execute()
+	image, r, err := d.client.Images.Create(auth).CreateImageBody(*createImageBody).Execute()
 	if err != nil {
 		if r.StatusCode == http.StatusForbidden {
 			resp.Diagnostics.AddError(
@@ -172,11 +173,9 @@ func (d *CorelliumV1ImageResource) Create(ctx context.Context, req resource.Crea
 	plan.Status = types.StringValue(image.GetStatus())
 	plan.Id = types.StringValue(image.GetId())
 	plan.Name = types.StringValue(image.GetName())
-	plan.Type = types.StringValue(image.GetType())
+	plan.Type = types.StringValue(string(image.GetType()))
 	plan.Filename = types.StringValue(plan.Filename.ValueString())
 	plan.Encapsulated = types.BoolValue(plan.Encapsulated.ValueBool())
-	plan.Filename = types.StringValue(plan.Filename.ValueString())
-	plan.Uniqueid = types.StringValue(image.GetUniqueid())
 	plan.Size = types.NumberValue(big.NewFloat(float64(image.GetSize())))
 	plan.Project = types.StringValue(image.GetProject())
 	plan.CreatedAt = types.StringValue(image.GetCreatedAt().String())
@@ -189,8 +188,8 @@ func (d *CorelliumV1ImageResource) Create(ctx context.Context, req resource.Crea
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (d *CorelliumV1ImageResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state V1ImageModel
+func (d *CorelliumImageResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state ImageModel
 
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -200,7 +199,7 @@ func (d *CorelliumV1ImageResource) Read(ctx context.Context, req resource.ReadRe
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 	// auth is the context with the access token, what is required by the API client.
-	image, r, err := d.client.ImagesApi.V1GetImage(auth, state.Id.ValueString()).Execute()
+	image, r, err := d.client.Images.Get(auth, state.Id.ValueString()).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -220,10 +219,9 @@ func (d *CorelliumV1ImageResource) Read(ctx context.Context, req resource.ReadRe
 	state.Status = types.StringValue(image.GetStatus())
 	state.Id = types.StringValue(image.GetId())
 	state.Name = types.StringValue(image.GetName())
-	state.Type = types.StringValue(image.GetType())
+	state.Type = types.StringValue(string(image.GetType()))
 	state.Filename = types.StringValue(state.Filename.ValueString())
 	state.Encapsulated = types.BoolValue(state.Encapsulated.ValueBool())
-	state.Uniqueid = types.StringValue(image.GetUniqueid())
 	state.Size = types.NumberValue(big.NewFloat(float64(image.GetSize())))
 	state.Project = types.StringValue(image.GetProject())
 	state.CreatedAt = types.StringValue(image.GetCreatedAt().String())
@@ -237,13 +235,13 @@ func (d *CorelliumV1ImageResource) Read(ctx context.Context, req resource.ReadRe
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
-func (d *CorelliumV1ImageResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (d *CorelliumImageResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// NOTICE: In this case, image cannot be updated, so we just return the current state.
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
-func (d *CorelliumV1ImageResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state V1ImageModel
+func (d *CorelliumImageResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state ImageModel
 
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -252,7 +250,7 @@ func (d *CorelliumV1ImageResource) Delete(ctx context.Context, req resource.Dele
 	}
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	r, err := d.client.ImagesApi.V1DeleteImage(auth, state.Id.ValueString()).Execute()
+	r, err := d.client.Images.Delete(auth, state.Id.ValueString()).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -271,10 +269,10 @@ func (d *CorelliumV1ImageResource) Delete(ctx context.Context, req resource.Dele
 }
 
 // Configure adds the provider configured client to the resource.
-func (d *CorelliumV1ImageResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
+func (d *CorelliumImageResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
 
-	d.client = req.ProviderData.(*corellium.APIClient)
+	d.client = req.ProviderData.(*ProviderData).Client
 }

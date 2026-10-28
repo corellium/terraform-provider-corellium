@@ -1,9 +1,9 @@
-# corelium_v1instances
+# corellium_instances
 
 ## Example
 
 ```terraform
-data "corellium_v1instances" "example" {}
+data "corellium_instances" "example" {}
 ```
 
 ## Schema
@@ -104,7 +104,9 @@ data "corellium_v1instances" "example" {}
 
 - `fwpackage` (string) - The firmware package of the instance.
 
-- `os` (string) - The OS version of the instance.
+- `os_version` (string) - The OS version of the instance.
+
+- `os_build` (string) - The OS build of the instance.
 
 - `agent` (object of `agent`) - The agent of the instance.
 

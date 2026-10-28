@@ -12,13 +12,12 @@ func TestAccCorelliumV1InstancesDataSource(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: providerConfig + `
-                data "corellium_v1instances" "test" {}
+                data "corellium_instances" "test" {}
                 `,
 				Check: resource.ComposeTestCheckFunc(
-					// resource.TestCheckResourceAttrSet("data.corellium_v1projects.test", "instances.#"),
+				// resource.TestCheckResourceAttrSet("data.corellium_projects.test", "instances.#"),
 				),
 			},
 		},
 	})
 }
-

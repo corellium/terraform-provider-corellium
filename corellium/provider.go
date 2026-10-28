@@ -2,22 +2,27 @@ package corellium
 
 import (
 	"context"
+	"crypto/tls"
+	"flag"
 	"fmt"
+	"net/http"
 	"os"
 
-	"github.com/aimoda/go-corellium-api-client"
+	"terraform-provider-corellium/corellium/pkg/api"
+
+	corellium "github.com/corellium/corellium-go-api-client"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces
 var (
-	_ provider.Provider = &corelliumProvider{}
+	_     provider.Provider = &corelliumProvider{}
+	Debug                   = flag.Bool("debug", false, "set to true to run the provider with support for debuggers like delve")
 )
 
 // New is a helper function to simplify provider server and testing implementation.
@@ -27,6 +32,18 @@ func New() provider.Provider {
 
 // corelliumProvider is the provider implementation.
 type corelliumProvider struct{}
+
+// ProviderData is passed to resources and data sources via
+// resp.ResourceData/resp.DataSourceData. It carries the configured API
+// client alongside the resolved host, since some endpoints aren't yet
+// exposed through the generated client and must build their own request
+// URL from the configured host instead of a hardcoded value. Those requests
+// must use HTTPClient so they get the same TLS settings as Client.
+type ProviderData struct {
+	Client     *corellium.CorelliumClient
+	Host       string
+	HTTPClient *http.Client
+}
 
 // hashicupsProviderModel maps provider schema data to a Go type.
 // The Terraform Plugin Framework uses Go struct types with 'tfsdk' struct field tags to map schema definitions into Go types with the actual data.
@@ -136,8 +153,18 @@ func (p *corelliumProvider) Configure(ctx context.Context, req provider.Configur
 	configuration := corellium.NewConfiguration()
 	configuration.Host = host
 
-	client := corellium.NewAPIClient(configuration)
-	r, err := client.StatusApi.V1Ready(ctx).Execute()
+	// Certificate verification is only skipped when running under -debug.
+	httpClient := http.DefaultClient
+	if *Debug {
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // Bypasses the strict check
+		}
+		httpClient = &http.Client{Transport: tr}
+	}
+	configuration.HTTPClient = httpClient
+
+	client := corellium.NewCorelliumClient(configuration)
+	r, err := client.Status.Ready(ctx).Execute()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error when calling `StatusApi.V1Ready``: %v\n", err)
 		fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
@@ -149,8 +176,14 @@ func (p *corelliumProvider) Configure(ctx context.Context, req provider.Configur
 		)
 	}
 
-	resp.DataSourceData = client
-	resp.ResourceData = client
+	providerData := &ProviderData{
+		Client:     client,
+		Host:       host,
+		HTTPClient: httpClient,
+	}
+
+	resp.DataSourceData = providerData
+	resp.ResourceData = providerData
 }
 
 // DataSources defines the data sources implemented in the provider.
@@ -168,12 +201,12 @@ func (p *corelliumProvider) DataSources(_ context.Context) []func() datasource.D
 // Resources defines the resources implemented in the provider.
 func (p *corelliumProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewCorelliumV1ImageResource,
-		NewCorelliumV1ProjectResource,
-		NewCorelliumV1TeamResource,
-		NewCorelliumV1UserResource,
-		NewCorelliumV1SnapshotResource,
-		NewCorelliumV1InstanceResource,
-		NewCorelliumV1WebPlayerResource,
+		NewCorelliumImageResource,
+		NewCorelliumProjectResource,
+		NewCorelliumTeamResource,
+		NewCorelliumUserResource,
+		NewCorelliumSnapshotResource,
+		NewCorelliumInstanceResource,
+		NewCorelliumWebPlayerResource,
 	}
 }

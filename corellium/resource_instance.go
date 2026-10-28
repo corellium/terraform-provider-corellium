@@ -6,53 +6,54 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/aimoda/go-corellium-api-client"
+	"terraform-provider-corellium/corellium/pkg/api"
+
+	corellium "github.com/corellium/corellium-go-api-client"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
-	"terraform-provider-corellium/corellium/pkg/api"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
 var (
-	_ resource.Resource              = &CorelliumV1InstanceResource{}
-	_ resource.ResourceWithConfigure = &CorelliumV1InstanceResource{}
+	_ resource.Resource              = &CorelliumInstanceResource{}
+	_ resource.ResourceWithConfigure = &CorelliumInstanceResource{}
 )
 
-// NewCorelliumV1InstanceResource is a helper function to simplify the provider implementation.
-func NewCorelliumV1InstanceResource() resource.Resource {
-	return &CorelliumV1InstanceResource{}
+// NewCorelliumInstanceResource is a helper function to simplify the provider implementation.
+func NewCorelliumInstanceResource() resource.Resource {
+	return &CorelliumInstanceResource{}
 }
 
-// CorelliumV1InstanceResource is the resource implementation.
-type CorelliumV1InstanceResource struct {
-	client *corellium.APIClient
+// CorelliumInstanceResource is the resource implementation.
+type CorelliumInstanceResource struct {
+	client *corellium.CorelliumClient
 }
 
-type V1InstanceVPNModel struct {
+type InstanceVPNModel struct {
 	Proxy     types.Map `tfsdk:"proxy"`
 	Listeners types.Map `tfsdk:"listeners"`
 }
 
-type V1InstanceServicesModel struct {
-	VPN *V1InstanceVPNModel `tfsdk:"vpn"`
+type InstanceServicesModel struct {
+	VPN *InstanceVPNModel `tfsdk:"vpn"`
 }
 
-type V1InstanceAgentModel struct {
+type InstanceAgentModel struct {
 	Hash types.String `tfsdk:"hash"`
 	Info types.String `tfsdk:"info"`
 }
 
-type V1InstanceNetmonModel struct {
+type InstanceNetmonModel struct {
 	Hash    types.String `tfsdk:"hash"`
 	Info    types.String `tfsdk:"info"`
 	Enabled types.Bool   `tfsdk:"enabled"`
 }
 
-type V1InstanceCreatedByModel struct { // TODO: rename to user or use the user model.
+type InstanceCreatedByModel struct { // TODO: rename to user or use the user model.
 	// Id is the user who created the instance.
 	Id types.String `tfsdk:"id"`
 	// Username is the username of the user who created the instance.
@@ -63,7 +64,7 @@ type V1InstanceCreatedByModel struct { // TODO: rename to user or use the user m
 	Deleted types.Bool `tfsdk:"deleted"`
 }
 
-type V1InstanceBootOptionsModel struct {
+type InstanceBootOptionsModel struct {
 	BootArgs        types.String `tfsdk:"boot_args"`
 	RestoreBootArgs types.String `tfsdk:"restore_boot_args"`
 	UDID            types.String `tfsdk:"udid"`
@@ -85,27 +86,27 @@ type V1InstanceBootOptionsModel struct {
 }
 
 const (
-	// V1InstanceStateOn is the state of the instance when it is running.
-	V1InstanceStateOn = "on"
-	// V1InstanceStateOff is the state of the instance when it is powered off.
-	V1InstanceStateOff = "off"
-	// V1InstanceStatePaused is the state of the instance when it is paused.
-	V1InstanceStatePaused = "paused"
-	// V1InstanceStateCreating is the state of the instance when it is being created.
-	V1InstanceStateCreating = "creating"
-	// V1InstanceStateDeleting is the state of the instance when it is being deleted.
-	V1InstanceStateDeleting = "deleting"
+	// InstanceStateOn is the state of the instance when it is running.
+	InstanceStateOn = "on"
+	// InstanceStateOff is the state of the instance when it is powered off.
+	InstanceStateOff = "off"
+	// InstanceStatePaused is the state of the instance when it is paused.
+	InstanceStatePaused = "paused"
+	// InstanceStateCreating is the state of the instance when it is being created.
+	InstanceStateCreating = "creating"
+	// InstanceStateDeleting is the state of the instance when it is being deleted.
+	InstanceStateDeleting = "deleting"
 )
 
 const (
-	// V1InstancesTaskStateNone is the state of the instance when there is no task.
-	V1InstancesTaskStateNone = "none"
-	// V1InstancesTaskStateBuilding is the state of the instance when it is being built.
-	V1InstancesTaskStateBuilding = "building"
+	// InstancesTaskStateNone is the state of the instance when there is no task.
+	InstancesTaskStateNone = "none"
+	// InstancesTaskStateBuilding is the state of the instance when it is being built.
+	InstancesTaskStateBuilding = "building"
 )
 
 // coffeesModel maps coffees schema data.
-type V1InstanceModel struct {
+type InstanceModel struct {
 	// Id is the unique identifier of the instance.
 	Id types.String `tfsdk:"id"`
 	// Name is the name of the instance.
@@ -177,29 +178,30 @@ type V1InstanceModel struct {
 	// Error is the error message of the instance.
 	Error types.String `tfsdk:"error"`
 	// BootOptions is the boot options of the instance.
-	BootOptions *V1InstanceBootOptionsModel `tfsdk:"boot_options"`
-	ServiceIP   types.String                `tfsdk:"service_ip"`
-	WifiIP      types.String                `tfsdk:"wifi_ip"`
-	SecondaryIP types.String                `tfsdk:"secondary_ip"`
-	// Services    *V1InstanceServicesModel    `tfsdk:"services"` // TODO: find the right type for this.
+	BootOptions *InstanceBootOptionsModel `tfsdk:"boot_options"`
+	ServiceIP   types.String              `tfsdk:"service_ip"`
+	WifiIP      types.String              `tfsdk:"wifi_ip"`
+	SecondaryIP types.String              `tfsdk:"secondary_ip"`
+	// Services    *InstanceServicesModel    `tfsdk:"services"` // TODO: find the right type for this.
 	Panicked types.Bool `tfsdk:"panicked"`
 	// Created is the time the instance was created.
 	Created   types.String `tfsdk:"created"`
 	Model     types.String `tfsdk:"model"`
 	FWPackage types.String `tfsdk:"fwpackage"`
 	// OS is the version of the operating system running on the instance, e.g. 14.3 for iOS, or 11.0.0 for Android.
-	OS         types.String           `tfsdk:"os"`
-	Agent      *V1InstanceAgentModel  `tfsdk:"agent"`
-	Netmon     *V1InstanceNetmonModel `tfsdk:"netmon"`
-	ExposePort types.String           `tfsdk:"expose_port"`
-	Fault      types.Bool             `tfsdk:"fault"`
+	OSVersion  types.String         `tfsdk:"os_version"`
+	OSBuild    types.String         `tfsdk:"os_build"`
+	Agent      *InstanceAgentModel  `tfsdk:"agent"`
+	Netmon     *InstanceNetmonModel `tfsdk:"netmon"`
+	ExposePort types.String         `tfsdk:"expose_port"`
+	Fault      types.Bool           `tfsdk:"fault"`
 	// Patches is the list of patches applied to the instance.
 	//    - jailbroken The instance should be jailbroken (default).
 	//    - nonjailbroken The instance should not be jailbroken.
 	//    - corelliumd The instance should not be jailbroken but should profile API agent.
 	Patches types.List `tfsdk:"patches"`
 	// CreatedBy is the user who created the instance.
-	CreatedBy *V1InstanceCreatedByModel `tfsdk:"created_by"`
+	CreatedBy *InstanceCreatedByModel `tfsdk:"created_by"`
 	// WaitForReady is a boolean that indicates if the resource should wait for the instance to be ready.
 	WaitForReady types.Bool `tfsdk:"wait_for_ready"`
 	// WaitForReadyTimeout is the timeout in seconds to wait for the instance to be ready.
@@ -208,15 +210,15 @@ type V1InstanceModel struct {
 }
 
 // Metadata returns the resource type name.
-func (d *CorelliumV1InstanceResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_v1instance"
+func (d *CorelliumInstanceResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_instance"
 	// TypeName is the name of the resource type, which must be unique within the provider.
 	// This is used to identify the resource type in state and plan files.
-	// i.e: resource corellium_v1instance "instance" { ... }
+	// i.e: resource corellium_instance "instance" { ... }
 }
 
 // Schema defines the schema for the resource.
-func (d *CorelliumV1InstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (d *CorelliumInstanceResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -360,8 +362,12 @@ func (d *CorelliumV1InstanceResource) Schema(_ context.Context, _ resource.Schem
 				Description: "Instance fwpackage",
 				Computed:    true,
 			},
-			"os": schema.StringAttribute{
-				Description: "Instance os",
+			"os_version": schema.StringAttribute{
+				Description: "Instance os version",
+				Required:    true,
+			},
+			"os_build": schema.StringAttribute{
+				Description: "Instance os build",
 				Required:    true,
 			},
 			"agent": schema.SingleNestedAttribute{
@@ -447,8 +453,8 @@ func (d *CorelliumV1InstanceResource) Schema(_ context.Context, _ resource.Schem
 const WaitForReadyTimeout = 900
 
 // Create creates the resource and sets the initial Terraform state.
-func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan V1InstanceModel
+func (d *CorelliumInstanceResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan InstanceModel
 
 	diags := req.Config.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -459,7 +465,7 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
 
 	if plan.Project.IsNull() || plan.Project.IsUnknown() {
-		projects, r, err := d.client.ProjectsApi.V1GetProjects(auth).Execute()
+		projects, r, err := d.client.Projects.List(auth).Execute()
 		if err != nil {
 			b, err := io.ReadAll(r.Body)
 			if err != nil {
@@ -478,7 +484,7 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 		}
 
 		// Assuming that the default project is the first one in the list.
-		plan.Project = types.StringValue(projects[0].Id)
+		plan.Project = types.StringValue(projects.Results[0].Id)
 
 		diags = resp.State.Set(ctx, plan)
 		resp.Diagnostics.Append(diags...)
@@ -487,9 +493,12 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 		}
 	}
 
-	i := corellium.NewInstanceCreateOptions(plan.Flavor.ValueString(), plan.Project.ValueString(), plan.OS.ValueString())
-	i.SetName(plan.Name.ValueString())
-	created, r, err := d.client.InstancesApi.V1CreateInstance(auth).InstanceCreateOptions(*i).Execute()
+	createInstanceBody := corellium.NewCreateInstanceBody(plan.Project.ValueString())
+	createInstanceBody.SetFlavor(plan.Flavor.ValueString())
+	createInstanceBody.SetOsVersion(plan.OSVersion.ValueString())
+	createInstanceBody.SetName(plan.Name.ValueString())
+	createInstanceBody.SetOsBuild(plan.OSBuild.ValueString())
+	created, r, err := d.client.Instances.Create(auth).CreateInstanceBody(*createInstanceBody).Execute()
 	if err != nil {
 		if r.StatusCode == http.StatusForbidden {
 			resp.Diagnostics.AddError(
@@ -526,7 +535,7 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 	if !plan.WaitForReady.IsUnknown() && plan.WaitForReady.ValueBool() {
 		createStateConf := &retry.StateChangeConf{
 			Refresh: func() (interface{}, string, error) {
-				instance, r, err := d.client.InstancesApi.V1GetInstance(auth, created.GetId()).Execute()
+				instance, r, err := d.client.Instances.Get(auth, created.GetId()).Execute()
 				if err != nil {
 					b, err := io.ReadAll(r.Body)
 					if err != nil {
@@ -547,13 +556,13 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 				return instance, string(instance.GetState()), nil
 			},
 			Pending: []string{
-				V1InstanceStateCreating,
-				V1InstanceStateDeleting,
+				InstanceStateCreating,
+				InstanceStateDeleting,
 			},
 			Target: []string{
-				V1InstanceStateOn,
-				V1InstanceStateOff,
-				V1InstanceStatePaused,
+				InstanceStateOn,
+				InstanceStateOff,
+				InstanceStatePaused,
 			},
 			Delay:      5 * time.Second,
 			MinTimeout: 5 * time.Second,
@@ -576,7 +585,7 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 		}
 	}
 
-	instance, r, err := d.client.InstancesApi.V1GetInstance(auth, created.GetId()).Execute()
+	instance, r, err := d.client.Instances.Get(auth, created.GetId()).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -601,7 +610,7 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 	plan.Project = types.StringValue(instance.GetProject())
 	plan.State = types.StringValue(string(instance.GetState()))
 	plan.StateChanged = types.StringValue(instance.GetStateChanged().UTC().String())
-	plan.StartedAt = types.StringValue(instance.GetStartedAt())
+	plan.StartedAt = types.StringValue(instance.GetStartedAt().Format(time.RFC3339))
 	plan.UserTask = types.StringValue(instance.GetUserTask())
 	plan.TaskState = types.StringValue(instance.GetTaskState())
 	plan.Error = types.StringValue(instance.GetError())
@@ -612,7 +621,7 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-	plan.BootOptions = &V1InstanceBootOptionsModel{
+	plan.BootOptions = &InstanceBootOptionsModel{
 		BootArgs:        types.StringValue(instance.BootOptions.GetBootArgs()),
 		RestoreBootArgs: types.StringValue(instance.BootOptions.GetRestoreBootArgs()),
 		UDID:            types.StringValue(instance.BootOptions.GetUdid()),
@@ -640,8 +649,8 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-	plan.Services = &V1InstanceServicesModel{
-		VPN: &V1InstanceVPNModel{
+	plan.Services = &InstanceServicesModel{
+		VPN: &InstanceVPNModel{
 			Proxy:     proxy,
 			Listeners: listeners,
 		},
@@ -650,17 +659,20 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 	plan.Panicked = types.BoolValue(instance.GetPanicked())
 	plan.Created = types.StringValue(instance.GetCreated().UTC().String())
 	plan.Model = types.StringValue(instance.GetModel())
-	plan.FWPackage = types.StringValue(instance.GetFwpackage())
-	plan.OS = types.StringValue(instance.GetOs())
-	plan.Agent = &V1InstanceAgentModel{
+	plan.FWPackage = types.StringValue(instance.GetFwPackage())
+	plan.OSBuild = types.StringValue(instance.GetOsBuild())
+	plan.OSVersion = types.StringValue(instance.GetOsVersion())
+	plan.Agent = &InstanceAgentModel{
 		Hash: types.StringValue(instance.Agent.Get().GetHash()),
 		Info: types.StringValue(instance.Agent.Get().GetInfo()),
 	}
-	plan.Netmon = &V1InstanceNetmonModel{
-		Hash:    types.StringValue(instance.Netmon.Get().GetHash()),
-		Info:    types.StringValue(instance.Netmon.Get().GetInfo()),
-		Enabled: types.BoolValue(instance.Netmon.Get().GetEnabled()),
+	netmon := instance.GetNetMon()
+	plan.Netmon = &InstanceNetmonModel{
+		Hash:    types.StringValue(netmon.GetHash()),
+		Info:    types.StringValue(netmon.GetInfo()),
+		Enabled: types.BoolValue(netmon.GetEnabled()),
 	}
+
 	plan.ExposePort = types.StringValue(instance.GetExposePort())
 	plan.Fault = types.BoolValue(instance.GetFault())
 
@@ -672,11 +684,11 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 
 	plan.Patches = patches
 
-	plan.CreatedBy = &V1InstanceCreatedByModel{
-		Id:       types.StringValue(instance.CreatedBy.GetId()),
-		Username: types.StringValue(instance.CreatedBy.GetUsername()),
-		Label:    types.StringValue(instance.CreatedBy.GetLabel()),
-		Deleted:  types.BoolValue(instance.CreatedBy.GetDeleted()),
+	plan.CreatedBy = &InstanceCreatedByModel{
+		Id:       types.StringValue(instance.CreatedBy.Get().GetId()),
+		Username: types.StringValue(instance.CreatedBy.Get().GetUsername()),
+		Label:    types.StringValue(instance.CreatedBy.Get().GetLabel()),
+		Deleted:  types.BoolValue(instance.CreatedBy.Get().GetDeleted()),
 	}
 
 	diags = resp.State.Set(ctx, plan)
@@ -687,8 +699,8 @@ func (d *CorelliumV1InstanceResource) Create(ctx context.Context, req resource.C
 }
 
 // Read refreshes the Terraform state with the latest data.
-func (d *CorelliumV1InstanceResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state V1InstanceModel
+func (d *CorelliumInstanceResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state InstanceModel
 
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -697,8 +709,13 @@ func (d *CorelliumV1InstanceResource) Read(ctx context.Context, req resource.Rea
 	}
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	instance, r, err := d.client.InstancesApi.V1GetInstance(auth, state.Id.ValueString()).Execute()
+	instance, r, err := d.client.Instances.Get(auth, state.Id.ValueString()).Execute()
 	if err != nil {
+		if r.StatusCode == http.StatusNotFound {
+			resp.State.RemoveResource(ctx)
+			return
+		}
+
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
 			resp.Diagnostics.AddError(
@@ -723,7 +740,7 @@ func (d *CorelliumV1InstanceResource) Read(ctx context.Context, req resource.Rea
 	state.Project = types.StringValue(instance.GetProject())
 	state.State = types.StringValue(string(instance.GetState()))
 	state.StateChanged = types.StringValue(instance.GetStateChanged().UTC().String())
-	state.StartedAt = types.StringValue(instance.GetStartedAt())
+	state.StartedAt = types.StringValue(instance.GetStartedAt().Format(time.RFC3339))
 	state.UserTask = types.StringValue(instance.GetUserTask())
 	state.TaskState = types.StringValue(instance.GetTaskState())
 	state.Error = types.StringValue(instance.GetError())
@@ -734,7 +751,7 @@ func (d *CorelliumV1InstanceResource) Read(ctx context.Context, req resource.Rea
 		return
 	}
 
-	state.BootOptions = &V1InstanceBootOptionsModel{
+	state.BootOptions = &InstanceBootOptionsModel{
 		BootArgs:        types.StringValue(instance.BootOptions.GetBootArgs()),
 		RestoreBootArgs: types.StringValue(instance.BootOptions.GetRestoreBootArgs()),
 		UDID:            types.StringValue(instance.BootOptions.GetUdid()),
@@ -761,8 +778,8 @@ func (d *CorelliumV1InstanceResource) Read(ctx context.Context, req resource.Rea
 		return
 	}
 
-	state.Services = &V1InstanceServicesModel{
-		VPN: &V1InstanceVPNModel{
+	state.Services = &InstanceServicesModel{
+		VPN: &InstanceVPNModel{
 			Proxy:     proxy,
 			Listeners: listeners,
 		},
@@ -771,16 +788,17 @@ func (d *CorelliumV1InstanceResource) Read(ctx context.Context, req resource.Rea
 	state.Panicked = types.BoolValue(instance.GetPanicked())
 	state.Created = types.StringValue(instance.GetCreated().UTC().String())
 	state.Model = types.StringValue(instance.GetModel())
-	state.FWPackage = types.StringValue(instance.GetFwpackage())
-	state.OS = types.StringValue(instance.GetOs())
-	state.Agent = &V1InstanceAgentModel{
+	state.FWPackage = types.StringValue(instance.GetFwPackage())
+	state.OSBuild = types.StringValue(instance.GetOsBuild())
+	state.OSVersion = types.StringValue(instance.GetOsVersion())
+	state.Agent = &InstanceAgentModel{
 		Hash: types.StringValue(instance.Agent.Get().GetHash()),
 		Info: types.StringValue(instance.Agent.Get().GetInfo()),
 	}
-	state.Netmon = &V1InstanceNetmonModel{
-		Hash:    types.StringValue(instance.Netmon.Get().GetHash()),
-		Info:    types.StringValue(instance.Netmon.Get().GetInfo()),
-		Enabled: types.BoolValue(instance.Netmon.Get().GetEnabled()),
+	state.Netmon = &InstanceNetmonModel{
+		Hash:    types.StringValue(instance.NetMon.GetHash()),
+		Info:    types.StringValue(instance.NetMon.GetInfo()),
+		Enabled: types.BoolValue(instance.NetMon.GetEnabled()),
 	}
 	state.ExposePort = types.StringValue(instance.GetExposePort())
 	state.Fault = types.BoolValue(instance.GetFault())
@@ -793,11 +811,11 @@ func (d *CorelliumV1InstanceResource) Read(ctx context.Context, req resource.Rea
 
 	state.Patches = patches
 
-	state.CreatedBy = &V1InstanceCreatedByModel{
-		Id:       types.StringValue(instance.CreatedBy.GetId()),
-		Username: types.StringValue(instance.CreatedBy.GetUsername()),
-		Label:    types.StringValue(instance.CreatedBy.GetLabel()),
-		Deleted:  types.BoolValue(instance.CreatedBy.GetDeleted()),
+	state.CreatedBy = &InstanceCreatedByModel{
+		Id:       types.StringValue(instance.CreatedBy.Get().GetId()),
+		Username: types.StringValue(instance.CreatedBy.Get().GetUsername()),
+		Label:    types.StringValue(instance.CreatedBy.Get().GetLabel()),
+		Deleted:  types.BoolValue(instance.CreatedBy.Get().GetDeleted()),
 	}
 
 	resp.Diagnostics.Append(diags...)
@@ -807,8 +825,8 @@ func (d *CorelliumV1InstanceResource) Read(ctx context.Context, req resource.Rea
 }
 
 // Update updates the resource and sets the updated Terraform state on success.
-func (d *CorelliumV1InstanceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var state V1InstanceModel
+func (d *CorelliumInstanceResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var state InstanceModel
 	// state is the current state of the resource.
 
 	diags := req.State.Get(ctx, &state)
@@ -817,7 +835,7 @@ func (d *CorelliumV1InstanceResource) Update(ctx context.Context, req resource.U
 		return
 	}
 
-	var plan V1InstanceModel
+	var plan InstanceModel
 	// plan is the proposed new state of the resource.
 
 	diags = req.Config.Get(ctx, &plan)
@@ -842,25 +860,30 @@ func (d *CorelliumV1InstanceResource) Update(ctx context.Context, req resource.U
 		return
 	}
 
-	if !state.OS.Equal(plan.OS) {
+	if !state.OSBuild.Equal(plan.OSBuild) {
 		resp.Diagnostics.AddError(
 			"Error updating instance",
-			"OS cannot be changed",
+			"OS build cannot be changed",
 		)
 		return
 	}
 
-	p := corellium.NewPatchInstanceOptions()
-	p.SetName(plan.Name.ValueString())
+	if !state.OSVersion.Equal(plan.OSVersion) {
+		resp.Diagnostics.AddError(
+			"Error updating instance",
+			"OS version cannot be changed",
+		)
+		return
+	}
 
-	if state.State.ValueString() == V1InstanceStateCreating {
+	if state.State.ValueString() == InstanceStateCreating {
 		resp.Diagnostics.AddWarning(
 			"Warning updating instance",
 			"Instance is currently being created. Changes to its state cannot be applied.",
 		)
 	}
 
-	if state.State.ValueString() == V1InstanceStateDeleting {
+	if state.State.ValueString() == InstanceStateDeleting {
 		resp.Diagnostics.AddError(
 			"Error updating instance",
 			"Instance is currently being deleted. Changes cannot be applied.",
@@ -869,7 +892,9 @@ func (d *CorelliumV1InstanceResource) Update(ctx context.Context, req resource.U
 	}
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	instance, r, err := d.client.InstancesApi.V1PatchInstance(auth, state.Id.ValueString()).PatchInstanceOptions(*p).Execute()
+	patchInstanceBody := corellium.NewPatchInstanceBody()
+	patchInstanceBody.SetName(plan.Name.ValueString())
+	instance, r, err := d.client.Instances.Patch(auth, state.Id.ValueString()).PatchInstanceBody(*patchInstanceBody).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -895,7 +920,7 @@ func (d *CorelliumV1InstanceResource) Update(ctx context.Context, req resource.U
 	state.Project = types.StringValue(instance.GetProject())
 	state.State = types.StringValue(string(instance.GetState()))
 	state.StateChanged = types.StringValue(instance.GetStateChanged().UTC().String())
-	state.StartedAt = types.StringValue(instance.GetStartedAt())
+	state.StartedAt = types.StringValue(instance.GetStartedAt().Format(time.RFC3339))
 	state.UserTask = types.StringValue(instance.GetUserTask())
 	state.TaskState = types.StringValue(instance.GetTaskState())
 	state.Error = types.StringValue(instance.GetError())
@@ -932,8 +957,8 @@ func (d *CorelliumV1InstanceResource) Update(ctx context.Context, req resource.U
 		return
 	}
 
-	state.Services = &V1InstanceServicesModel{
-		VPN: &V1InstanceVPNModel{
+	state.Services = &InstanceServicesModel{
+		VPN: &InstanceVPNModel{
 			Proxy:     proxy,
 			Listeners: listeners,
 		},
@@ -942,15 +967,21 @@ func (d *CorelliumV1InstanceResource) Update(ctx context.Context, req resource.U
 	state.Panicked = types.BoolValue(instance.GetPanicked())
 	state.Created = types.StringValue(instance.GetCreated().UTC().String())
 	state.Model = types.StringValue(instance.GetModel())
-	state.FWPackage = types.StringValue(instance.GetFwpackage())
-	state.OS = types.StringValue(instance.GetOs())
+	state.FWPackage = types.StringValue(instance.GetFwPackage())
+	state.OSBuild = types.StringValue(instance.GetOsBuild())
+	state.OSVersion = types.StringValue(instance.GetOsVersion())
 
-	state.Agent.Hash = types.StringValue(instance.Agent.Get().GetHash())
-	state.Agent.Info = types.StringValue(instance.Agent.Get().GetInfo())
+	state.Agent = &InstanceAgentModel{
+		Hash: types.StringValue(instance.Agent.Get().GetHash()),
+		Info: types.StringValue(instance.Agent.Get().GetInfo()),
+	}
 
-	state.Netmon.Hash = types.StringValue(instance.Netmon.Get().GetHash())
-	state.Netmon.Info = types.StringValue(instance.Netmon.Get().GetInfo())
-	state.Netmon.Enabled = types.BoolValue(instance.Netmon.Get().GetEnabled())
+	netmon := instance.GetNetMon()
+	state.Netmon = &InstanceNetmonModel{
+		Hash:    types.StringValue(netmon.GetHash()),
+		Info:    types.StringValue(netmon.GetInfo()),
+		Enabled: types.BoolValue(netmon.GetEnabled()),
+	}
 
 	state.ExposePort = types.StringValue(instance.GetExposePort())
 	state.Fault = types.BoolValue(instance.GetFault())
@@ -963,11 +994,17 @@ func (d *CorelliumV1InstanceResource) Update(ctx context.Context, req resource.U
 
 	state.Patches = patches
 
-	state.CreatedBy = &V1InstanceCreatedByModel{
-		Id:       types.StringValue(instance.CreatedBy.GetId()),
-		Username: types.StringValue(instance.CreatedBy.GetUsername()),
-		Label:    types.StringValue(instance.CreatedBy.GetLabel()),
-		Deleted:  types.BoolValue(instance.CreatedBy.GetDeleted()),
+	if instance.CreatedBy.IsSet() {
+		createdBy := instance.CreatedBy.Get()
+
+		state.CreatedBy = &InstanceCreatedByModel{
+			Id:       types.StringValue(createdBy.GetId()),
+			Username: types.StringValue(createdBy.GetUsername()),
+			Label:    types.StringValue(createdBy.GetLabel()),
+			Deleted:  types.BoolValue(createdBy.GetDeleted()),
+		}
+	} else {
+		state.CreatedBy = nil
 	}
 
 	diags = resp.State.Set(ctx, state)
@@ -978,8 +1015,8 @@ func (d *CorelliumV1InstanceResource) Update(ctx context.Context, req resource.U
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
-func (d *CorelliumV1InstanceResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state V1InstanceModel
+func (d *CorelliumInstanceResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state InstanceModel
 
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -988,7 +1025,7 @@ func (d *CorelliumV1InstanceResource) Delete(ctx context.Context, req resource.D
 	}
 
 	auth := context.WithValue(ctx, corellium.ContextAccessToken, api.GetAccessToken())
-	r, err := d.client.InstancesApi.V1DeleteInstance(auth, state.Id.ValueString()).Execute()
+	r, err := d.client.Instances.Delete(auth, state.Id.ValueString()).Execute()
 	if err != nil {
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -1013,7 +1050,7 @@ func (d *CorelliumV1InstanceResource) Delete(ctx context.Context, req resource.D
 
 	deleteStateConf := &retry.StateChangeConf{
 		Refresh: func() (interface{}, string, error) {
-			instance, _, _ := d.client.InstancesApi.V1GetInstance(auth, state.Id.ValueString()).Execute()
+			instance, _, _ := d.client.Instances.Get(auth, state.Id.ValueString()).Execute()
 			if instance != nil {
 				return instance, string(instance.GetState()), nil
 			}
@@ -1021,7 +1058,7 @@ func (d *CorelliumV1InstanceResource) Delete(ctx context.Context, req resource.D
 			return deleteStateStructure{Id: state.Id.ValueString()}, deleteState, nil
 		},
 		Pending: []string{
-			V1InstanceStateDeleting,
+			InstanceStateDeleting,
 		},
 		Target: []string{
 			deleteState,
@@ -1041,10 +1078,10 @@ func (d *CorelliumV1InstanceResource) Delete(ctx context.Context, req resource.D
 }
 
 // Configure adds the provider configured client to the resource.
-func (d *CorelliumV1InstanceResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
+func (d *CorelliumInstanceResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
 
-	d.client = req.ProviderData.(*corellium.APIClient)
+	d.client = req.ProviderData.(*ProviderData).Client
 }

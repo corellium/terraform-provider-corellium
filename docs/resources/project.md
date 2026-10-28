@@ -1,9 +1,9 @@
-# corellium_v1project
+# corellium_project
 
 ## Example
 
 ```terraform
-resource "corellium_v1project" "example" {
+resource "corellium_project" "example" {
   name = "example"
   settings = {
     version = 1
